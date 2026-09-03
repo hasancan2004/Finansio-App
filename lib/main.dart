@@ -1,19 +1,26 @@
-import 'package:finansio/providers/theme_provider.dart';
-import 'package:finansio/screens/budgets_screen.dart';
-import 'package:finansio/screens/onboarding_screen.dart';
-import 'package:finansio/screens/bottom_nav.dart';
+// lib/main.dart
+import 'package:finansio/presentation/reports/view/category_spike_screen.dart';
+import 'package:finansio/presentation/reports/view/weekly_summary_screen.dart';
+import 'package:finansio/presentation/settings/viewmodel/theme_provider.dart';
+import 'package:finansio/presentation/budgets/view/budgets_screen.dart';
+import 'package:finansio/presentation/onboarding/view/onboarding_screen.dart';
+import 'package:finansio/presentation/shared/widgets/bottom_nav.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'package:finansio/data/app_database.dart';
-import 'package:finansio/providers/providers.dart';
+import 'package:finansio/data/database/app_database.dart';
+import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:finansio/services/notification_service.dart';
 import 'package:drift/drift.dart' show Value;
+
+import 'data/services/notification_service.dart';
+
+// ✅ YENİ: Uygulamanın her yerinden sayfa değiştirebilmek için global anahtar
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,12 +30,13 @@ void main() async {
   debugPrint('[Main] NotificationService.init()');
   await NotificationService.init();
 
-  debugPrint('[Main] ensureDailyScheduled()');
+  debugPrint('[Main] Bildirim zamanlayıcıları kuruluyor...');
   try {
     await NotificationService.ensureDailyScheduled();
-    debugPrint('[Main] ensureDailyScheduled() done');
+    await NotificationService.ensureWeeklyTrendScheduled(); // ✅ HAFTALIK BİLDİRİM TETİKLEYİCİ
+    debugPrint('[Main] Bildirim kurulumları tamamlandı');
   } catch (e, st) {
-    debugPrint('[Main] ensureDailyScheduled ERROR: $e');
+    debugPrint('[Main] Bildirim ERROR: $e');
     debugPrint('$st');
   }
 
@@ -52,6 +60,7 @@ class FinansioApp extends ConsumerWidget {
     final seedColor = accentColorFromKey(accentKey);
 
     return MaterialApp(
+      navigatorKey: globalNavigatorKey,
       title: "Finansio",
       debugShowCheckedModeBanner: false,
       theme: buildLightTheme(seedColor),
@@ -71,6 +80,9 @@ class FinansioApp extends ConsumerWidget {
       routes: {
         '/home': (_) => const BottomNavShell(),
         '/budgets': (_) => const BudgetsScreen(),
+        '/reports': (_) => const BottomNavShell(), // ✅ Tıklanınca uygulamayı açıp navigasyona yönlendirir
+        '/weekly_summary': (_) => const WeeklySummaryScreen(),
+        '/category_spike': (_) => const CategorySpikeScreen(),
       },
     );
   }
@@ -106,11 +118,10 @@ class _BootstrapperState extends ConsumerState<_Bootstrapper> {
       final db = ref.read(dbProvider);
 
       final catCount = await (db.select(db.categories)).get().then((l) => l.length);
-      final txCount =
-      await (db.select(db.transactions)).get().then((l) => l.length);
+      final txCount = await (db.select(db.transactions)).get().then((l) => l.length);
 
       if (catCount == 0 && txCount == 0) {
-        await _seedDemoData(db);
+        await db.seed();
       }
 
       await prefs.setBool(_kDemoSeeded, true);
@@ -119,133 +130,6 @@ class _BootstrapperState extends ConsumerState<_Bootstrapper> {
     if (!mounted) return;
     setState(() {
       _seen = seen;
-    });
-  }
-
-  Future<void> _seedDemoData(AppDatabase db) async {
-    final now = DateTime.now();
-    final y = now.year;
-    final m = now.month;
-
-    DateTime d(int day, {int hour = 12, int min = 0}) =>
-        DateTime(y, m, day, hour, min);
-
-    await db.transaction(() async {
-      final catSalaryId = await db.into(db.categories).insert(
-        CategoriesCompanion.insert(
-          name: 'Maaş',
-          colorHex: const Value('#2E7D32'),
-        ),
-      );
-
-      final catMarketId = await db.into(db.categories).insert(
-        CategoriesCompanion.insert(
-          name: 'Market',
-          colorHex: const Value('#FF7043'),
-        ),
-      );
-
-      final catRentId = await db.into(db.categories).insert(
-        CategoriesCompanion.insert(
-          name: 'Kira',
-          colorHex: const Value('#D32F2F'),
-        ),
-      );
-
-      final catTransportId = await db.into(db.categories).insert(
-        CategoriesCompanion.insert(
-          name: 'Ulaşım',
-          colorHex: const Value('#1976D2'),
-        ),
-      );
-
-      final catFunId = await db.into(db.categories).insert(
-        CategoriesCompanion.insert(
-          name: 'Eğlence',
-          colorHex: const Value('#7B1FA2'),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: 25000,
-          categoryId: catSalaryId,
-          note: const Value('Aylık maaş'),
-          date: Value(d(1, hour: 10)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -8500,
-          categoryId: catRentId,
-          note: const Value('Ev kirası'),
-          date: Value(d(1, hour: 11)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -420,
-          categoryId: catMarketId,
-          note: const Value('Haftalık alışveriş'),
-          date: Value(d(3, hour: 18)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -165,
-          categoryId: catTransportId,
-          note: const Value('Otobüs / metro'),
-          date: Value(d(4, hour: 9)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -260,
-          categoryId: catMarketId,
-          note: const Value('Kahvaltılık'),
-          date: Value(d(7, hour: 20)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -340,
-          categoryId: catFunId,
-          note: const Value('Sinema'),
-          date: Value(d(10, hour: 21)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -95,
-          categoryId: catTransportId,
-          note: const Value('Taksi'),
-          date: Value(d(12, hour: 23)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -510,
-          categoryId: catMarketId,
-          note: const Value('Market'),
-          date: Value(d(15, hour: 19)),
-        ),
-      );
-
-      await db.into(db.transactions).insert(
-        TransactionsCompanion.insert(
-          amount: -180,
-          categoryId: catFunId,
-          note: const Value('Kafe'),
-          date: Value(d(17, hour: 17)),
-        ),
-      );
     });
   }
 

@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.finansio"
+    namespace = "com.hasancankula.finansio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion =  "27.0.12077973"
 
@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.finansio"
+        applicationId = "com.hasancankula.finansio"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
