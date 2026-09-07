@@ -8,6 +8,7 @@ import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 
 class FilteredTxListScreen extends ConsumerWidget {
@@ -22,9 +23,8 @@ class FilteredTxListScreen extends ConsumerWidget {
     this.month,
   });
 
-  Color _cardBg(ColorScheme cs) => cs.primaryContainer.withOpacity(0.22);
-  BorderSide _cardBorder(ColorScheme cs) =>
-      BorderSide(color: cs.primary.withOpacity(0.10));
+  Color _cardBg(ColorScheme cs) => AppSurfaces.cardFill(cs);
+  BorderSide _cardBorder(ColorScheme cs) => AppSurfaces.cardBorder(cs);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,8 +83,8 @@ class FilteredTxListScreen extends ConsumerWidget {
                       : "Filtrelenmiş işlemler",
                   trailing: CircleAvatar(
                     radius: 18,
-                    backgroundColor: Colors.white.withOpacity(0.25),
-                    child: const Icon(Icons.list_alt, color: Colors.white, size: 18),
+                    backgroundColor: cs.primary.withOpacity(0.16),
+                    child: Icon(Icons.list_alt, color: cs.primary, size: 18),
                   ),
                 ),
               ),

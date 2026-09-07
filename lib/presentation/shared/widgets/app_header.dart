@@ -31,12 +31,8 @@ class AppHeader extends StatelessWidget {
         ? cs.onSurface.withOpacity(0.70)
         : Colors.white.withOpacity(0.82);
 
-    final headerBg = onSurface
-        ? cs.primaryContainer.withOpacity(0.20)
-        : Colors.white.withOpacity(0.14);
-
     final headerBorder = onSurface
-        ? Border.all(color: cs.primary.withOpacity(0.12))
+        ? Border.all(color: cs.primary.withOpacity(0.16))
         : Border.all(color: Colors.white.withOpacity(0.12));
 
     return SizedBox(
@@ -46,7 +42,24 @@ class AppHeader extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // ✅ daha dolu
           decoration: BoxDecoration(
-            color: headerBg,
+            color: onSurface ? null : Colors.white.withOpacity(0.14),
+            gradient: onSurface
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: theme.brightness == Brightness.dark
+                        ? [
+                            Color.lerp(const Color(0xFF2A2E36), cs.primary, 0.10)!,
+                            const Color(0xFF22262C),
+                            const Color(0xFF1C1F24),
+                          ]
+                        : [
+                            cs.primaryContainer.withOpacity(0.72),
+                            cs.secondaryContainer.withOpacity(0.48),
+                            cs.tertiaryContainer.withOpacity(0.40),
+                          ],
+                  )
+                : null,
             borderRadius: BorderRadius.circular(18),
             border: headerBorder,
           ),

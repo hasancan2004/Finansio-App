@@ -1,11 +1,15 @@
 // lib/presentation/settings/view/settings_screen.dart
-import 'package:finansio/presentation/settings/viewmodel/theme_provider.dart';
-import 'package:finansio/presentation/settings/view/privacy_policy_screen.dart';
+import 'package:flutter/foundation.dart'; // ✅ kDebugMode için eklendi
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:finansio/presentation/settings/viewmodel/theme_provider.dart';
+import 'package:finansio/presentation/settings/view/privacy_policy_screen.dart';
+
 import '../../../data/services/notification_service.dart';
+import '../../../data/database/app_database.dart';
 import '../../budgets/viewmodel/budget_providers.dart';
+import '../../reports/viewmodel/ai_insights_provider.dart';
 import '../../reports/viewmodel/forecast_providers.dart';
 import '../../transactions/viewmodel/tx_providers.dart';
 import '../../reports/viewmodel/reports.dart';
@@ -73,26 +77,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final base = isDark
-        ? cs.surfaceVariant.withOpacity(0.24)
-        : cs.primaryContainer.withOpacity(0.24);
-
     return BoxDecoration(
       borderRadius: BorderRadius.circular(18),
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          base,
-          cs.secondaryContainer.withOpacity(isDark ? 0.10 : 0.14),
-        ],
+        colors: isDark
+            ? [
+                Color.lerp(const Color(0xFF2A2E36), cs.primaryContainer, 0.08)!,
+                const Color(0xFF1E2228),
+              ]
+            : [
+                Color.lerp(const Color(0xFFD6E7F2), cs.primaryContainer, 0.38)!,
+                Color.lerp(const Color(0xFFDEECF5), cs.secondaryContainer, 0.32)!,
+              ],
       ),
       border: Border.all(
-        color: cs.primary.withOpacity(isDark ? 0.16 : 0.14),
+        color: cs.primary.withOpacity(isDark ? 0.16 : 0.20),
       ),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
+          color: isDark
+              ? Colors.black.withOpacity(0.35)
+              : cs.primary.withOpacity(0.12),
           blurRadius: 18,
           spreadRadius: -10,
           offset: const Offset(0, 10),
@@ -196,6 +203,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (!granted || !enabledNow) {
         if (!mounted) return;
+        setState(() => _dailyEnabled = false);
+        await NotificationService.setDailyEnabled(false);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Bildirim izni kapalı. Ayarlardan izin verebilirsin.'),
@@ -229,10 +239,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.invalidate(budgetStatusesProvider);
     ref.invalidate(globalLimitStatusProvider);
 
-    // AI Forecast'i önceden silmiştik, eğer provider'ı duruyorsa sorun yok.
     ref.invalidate(categoryPieProvider);
     ref.invalidate(monthlyTrendProvider);
     ref.invalidate(reportsSummaryProvider);
+
+    ref.invalidate(aiThisMonthTxsProvider);
+    ref.invalidate(aiLastMonthTxsProvider);
+    ref.invalidate(aiInsightsProvider);
   }
 
   void _openRecurring() {
@@ -276,15 +289,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final db = ref.read(dbProvider);
 
       await db.clearAllData();
-
       await db.seedCategoriesOnly();
 
-      _invalidateAll(); // ✅ BU SATIRI MUTLAKA EKLEMELİSİN!
+      _invalidateAll();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(const SnackBar(content: Text("Tüm veriler silindi ✅")));
+        ..showSnackBar(const SnackBar(content: Text("Uygulama sıfırlandı ve tertemiz hale getirildi ✅")));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -339,8 +351,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: "Tema, bildirim ve yedeklemeyi buradan yönet",
                   trailing: CircleAvatar(
                     radius: 18,
-                    backgroundColor: Colors.white.withOpacity(0.25),
-                    child: const Icon(Icons.settings, color: Colors.white),
+                    backgroundColor: cs.primary.withOpacity(0.16),
+                    child: Icon(Icons.settings, color: cs.primary),
                   ),
                   onSurface: true,
                 ),
@@ -473,7 +485,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                             onChanged: _toggleDaily,
                           ),
-                          // ✅ BAĞIMLI UI HİLESİ (Opacity + IgnorePointer)
                           AnimatedOpacity(
                             opacity: _dailyEnabled ? 1.0 : 0.4,
                             duration: const Duration(milliseconds: 200),
@@ -492,7 +503,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ),
                           const Divider(height: 20),
-                          // ✅ SOL TARAFA İKONLAR EKLENDİ
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
                             secondary: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
@@ -542,52 +552,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             },
                           ),
 
-                          // ✅ TEST BUTONLARI GİZLENDİ (Geliştirici Araçları)
-                          Theme(
-                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                            child: ExpansionTile(
-                              tilePadding: EdgeInsets.zero,
-                              title: Text(
-                                "Geliştirici Araçları 🛠️",
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: cs.primary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              children: [
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Wrap(
-                                    spacing: 8,
-                                    runSpacing: 4,
-                                    children: [
-                                      TextButton.icon(
-                                        onPressed: () async {
-                                          await NotificationService.debugShowNow();
-                                        },
-                                        icon: const Icon(Icons.bug_report_outlined),
-                                        label: const Text("Günlük test"),
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: () async {
-                                          await NotificationService.debugWeeklySummaryNow();
-                                        },
-                                        icon: const Icon(Icons.bar_chart_outlined),
-                                        label: const Text("Haftalık özet test"),
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: () async {
-                                          await NotificationService.debugCategorySpikeNow();
-                                        },
-                                        icon: const Icon(Icons.calendar_month_outlined),
-                                        label: const Text("Kategori tepe noktası test"),
-                                      ),
-                                    ],
+                          // ✅ TEST BUTONLARI GİZLENDİ (Sadece Geliştirme Modunda Görünür)
+                          if (kDebugMode) ...[
+                            Theme(
+                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                              child: ExpansionTile(
+                                tilePadding: EdgeInsets.zero,
+                                title: Text(
+                                  "Geliştirici Araçları 🛠️",
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: cs.primary,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ],
+                                children: [
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            await NotificationService.debugShowNow();
+                                          },
+                                          icon: const Icon(Icons.bug_report_outlined),
+                                          label: const Text("Günlük test"),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            await NotificationService.debugWeeklySummaryNow();
+                                          },
+                                          icon: const Icon(Icons.bar_chart_outlined),
+                                          label: const Text("Haftalık özet test"),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            await NotificationService.debugCategorySpikeNow();
+                                          },
+                                          icon: const Icon(Icons.calendar_month_outlined),
+                                          label: const Text("Kategori tepe noktası test"),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -698,7 +710,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                     const SizedBox(height: 12),
 
-                    // HAKKINDA
+                    // ✅ YENİ KURUMSAL HAKKINDA KISMI
                     _card(
                       theme,
                       Column(
@@ -713,24 +725,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           const SizedBox(height: 12),
                           Text("Versiyon: 1.0.0 (Build 1)", style: theme.textTheme.bodyMedium),
                           const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-                              );
-                            },
-                            icon: const Icon(Icons.privacy_tip_outlined),
-                            label: const Text("Gizlilik Politikası"),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text("Geliştirici: Hasan Can KULA"),
-                          const SizedBox(height: 6),
                           Text(
-                            "İletişim: hasancan.kula0707@gmail.com",
+                            "Öneri ve görüşlerin uygulamayı daha iyi hale getirmemiz için çok önemli.",
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: cs.onSurface.withOpacity(0.75),
-                              fontWeight: FontWeight.w600,
+                              height: 1.4,
                             ),
+                          ),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                                  );
+                                },
+                                icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+                                label: const Text("Gizlilik Politikası"),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Bize ulaşın sayfası yakında eklenecek.")),
+                                  );
+                                },
+                                icon: const Icon(Icons.mail_outline, size: 18),
+                                label: const Text("Bize Ulaşın"),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Uygulama yayına alındığında aktif olacak.")),
+                                  );
+                                },
+                                icon: const Icon(Icons.star_border_rounded, size: 18),
+                                label: const Text("Değerlendir"),
+                              ),
+                            ],
                           ),
                         ],
                       ),

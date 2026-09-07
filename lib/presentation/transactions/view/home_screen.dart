@@ -18,6 +18,7 @@ import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 import 'tx_filter_sheet.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 // ✅ Recurring Engine
 import 'package:finansio/domain/engine/recurring_engine.dart';
@@ -79,6 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     // ✅ Limit/bütçe bannerları sadece "Bu Ay" + date range yokken
     final bool showBudgetBanners = filter == FilterRange.thisMonth && range == null;
@@ -248,6 +250,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               useSafeArea: true,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
+              showDragHandle: false,
               builder: (_) => const TxFilterSheet(),
             );
           },
@@ -283,8 +286,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   },
                   child: CircleAvatar(
                     radius: 20,
-                    backgroundColor: Colors.white.withOpacity(0.25),
-                    child: const Icon(Icons.person, color: Colors.white),
+                    backgroundColor: cs.primary.withOpacity(0.16),
+                    child: Icon(Icons.person, color: cs.primary),
                   ),
                 ),
               ),
@@ -308,10 +311,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Card(
-              color: cs.primaryContainer.withOpacity(0.22),
+              color: AppSurfaces.cardFill(cs),
+              elevation: isDark ? 0 : 1,
+              shadowColor: cs.primary.withOpacity(0.22),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
-                side: BorderSide(color: cs.primary.withOpacity(0.10)),
+                side: AppSurfaces.cardBorder(cs),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(14),
@@ -326,10 +331,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Card(
-                color: cs.primaryContainer.withOpacity(0.22),
+                color: AppSurfaces.cardFill(cs),
+                elevation: isDark ? 0 : 1,
+                shadowColor: cs.primary.withOpacity(0.22),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
-                  side: BorderSide(color: cs.primary.withOpacity(0.10)),
+                  side: AppSurfaces.cardBorder(cs),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -437,6 +444,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         items.sort((a, b) => b.date.toLocal().compareTo(a.date.toLocal()));
 
         final cs = Theme.of(context).colorScheme;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final timeFmt = DateFormat('HH:mm');
         final fullFmt = DateFormat('dd.MM.yyyy');
         final theme = Theme.of(context);
@@ -542,14 +550,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       title,
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w900,
-                        color: cs.onSurface.withOpacity(0.75),
+                        color: cs.onSurface.withOpacity(isDark ? 0.75 : 0.85),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Container(
                         height: 1,
-                        color: cs.outlineVariant.withOpacity(0.35),
+                        // ✅ Çizgi rengini açık temada daha belirgin hale getirdik
+                        color: cs.outlineVariant.withOpacity(isDark ? 0.35 : 0.70),
                       ),
                     ),
                   ],
@@ -605,10 +614,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     return false;
                   },
                   child: Card(
-                    color: cs.primaryContainer.withOpacity(0.22),
+                    color: AppSurfaces.cardFill(cs),
+                    elevation: isDark ? 0 : 1,
+                    shadowColor: cs.primary.withOpacity(0.20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
-                      side: BorderSide(color: cs.primary.withOpacity(0.10)),
+                      side: AppSurfaces.cardBorder(cs),
                     ),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(18),
@@ -664,7 +675,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 Text(
                                   _formatTry(t.amount.abs()),
                                   style: TextStyle(
-                                    color: isIncome ? Colors.green : Colors.red,
+                                    color: isIncome
+                                        ? Colors.green
+                                        : _expenseAmountColor(isDark),
                                     fontWeight: FontWeight.w900,
                                     fontSize: 15,
                                   ),
@@ -747,7 +760,7 @@ class _FilterChips extends StatelessWidget {
         ),
         selected: isSelected,
         selectedColor: cs.primary.withOpacity(.92),
-        backgroundColor: cs.surfaceVariant.withOpacity(0.35),
+        backgroundColor: cs.primaryContainer.withOpacity(0.55),
         onSelected: (_) => onSelected(value),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         side: BorderSide(
@@ -799,13 +812,16 @@ class _SummaryCard extends StatelessWidget {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final expense = _expenseAmountColor(isDark);
+
     return Row(
       children: [
         cell("Gelir", summary.income, Colors.green),
         const SizedBox(width: 12),
-        cell("Gider", summary.expense, Colors.red),
+        cell("Gider", summary.expense, expense),
         const SizedBox(width: 12),
-        cell("Net", summary.net, summary.net >= 0 ? Colors.green : Colors.red),
+        cell("Net", summary.net, summary.net >= 0 ? Colors.green : expense),
       ],
     );
   }
@@ -841,6 +857,9 @@ Color _hexToColor(String hex) {
   final colorInt = int.parse(v, radix: 16) | 0xFF000000;
   return Color(colorInt);
 }
+
+Color _expenseAmountColor(bool isDark) =>
+    isDark ? Colors.red.shade400 : Colors.red;
 
 /// ✅ ₺ sağda + işareti yok: "10.000 ₺"
 String _formatTry(double amount) {

@@ -129,12 +129,38 @@ StateNotifierProvider<AccentController, AccentColorKey>((ref) {
   return AccentController();
 });
 
+Color _mix(Color a, Color b, double t) => Color.lerp(a, b, t)!;
+
 /// ------------------ Tema Tanımları (Sade Modern) ------------------
 
 ThemeData buildLightTheme(Color accent) {
-  final scheme = ColorScheme.fromSeed(
+  final seeded = ColorScheme.fromSeed(
     seedColor: accent,
     brightness: Brightness.light,
+  );
+
+  // Zemin doygun; kartlar buz mavisi — beyaz değil, zeminden de açık.
+  final canvas = _mix(const Color(0xFFB7CFE0), accent, 0.18);
+  final sheet = _mix(const Color(0xFFC4D8E8), accent, 0.14);
+  final card = _mix(const Color(0xFFD8E8F3), accent, 0.12);
+  final cardRaised = _mix(const Color(0xFFE0EEF6), accent, 0.10);
+  final well = _mix(const Color(0xFFA9C4D8), accent, 0.16);
+  const onSurface = Color(0xFF142033);
+
+  final scheme = seeded.copyWith(
+    surface: sheet,
+    surfaceDim: well,
+    surfaceBright: cardRaised,
+    surfaceContainerLowest: cardRaised,
+    surfaceContainerLow: card,
+    surfaceContainer: sheet,
+    surfaceContainerHigh: well,
+    surfaceContainerHighest: _mix(well, accent, 0.10),
+    onSurface: onSurface,
+    onSurfaceVariant: const Color(0xFF4B5C70),
+    outline: _mix(const Color(0xFF8EA6BA), accent, 0.18),
+    outlineVariant: _mix(const Color(0xFFB9CDDC), accent, 0.14),
+    surfaceTint: accent,
   );
 
   final radius = BorderRadius.circular(16);
@@ -143,13 +169,11 @@ ThemeData buildLightTheme(Color accent) {
     useMaterial3: true,
     colorScheme: scheme,
     fontFamily: "Poppins",
+    canvasColor: canvas,
+    scaffoldBackgroundColor: canvas,
 
-    // Daha temiz bir arkaplan
-    scaffoldBackgroundColor: const Color(0xFFF7F7FA),
-
-    // AppBar: şov yok, temiz
     appBarTheme: AppBarTheme(
-      backgroundColor: const Color(0xFFF7F7FA),
+      backgroundColor: canvas,
       elevation: 0,
       centerTitle: false,
       scrolledUnderElevation: 0,
@@ -162,18 +186,18 @@ ThemeData buildLightTheme(Color accent) {
       iconTheme: IconThemeData(color: scheme.onSurface),
     ),
 
-    // Kartlar: tek tip, temiz
     cardTheme: CardThemeData(
-      color: scheme.surface,
+      color: card,
       elevation: 0,
       margin: EdgeInsets.zero,
+      shadowColor: accent.withOpacity(0.18),
       shape: RoundedRectangleBorder(borderRadius: radius),
     ),
 
     dividerTheme: DividerThemeData(
       thickness: 1,
       space: 20,
-      color: scheme.outlineVariant.withOpacity(0.55),
+      color: scheme.outlineVariant.withOpacity(0.70),
     ),
 
     inputDecorationTheme: InputDecorationTheme(
@@ -190,8 +214,42 @@ ThemeData buildLightTheme(Color accent) {
         borderSide: BorderSide(color: scheme.primary, width: 1.4),
       ),
       filled: true,
-      fillColor: scheme.surface,
+      fillColor: cardRaised,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    ),
+
+    chipTheme: ChipThemeData(
+      backgroundColor: scheme.primaryContainer.withOpacity(0.55),
+      selectedColor: scheme.primary,
+      side: BorderSide(color: scheme.primary.withOpacity(0.18)),
+      labelStyle: TextStyle(
+        color: scheme.primary,
+        fontWeight: FontWeight.w800,
+        fontFamily: "Poppins",
+      ),
+    ),
+
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: cardRaised,
+      indicatorColor: scheme.primary.withOpacity(0.18),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        );
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          fontFamily: "Poppins",
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        );
+      }),
     ),
 
     listTileTheme: ListTileThemeData(
@@ -205,7 +263,7 @@ ThemeData buildLightTheme(Color accent) {
       backgroundColor: scheme.primary,
       foregroundColor: scheme.onPrimary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 1,
+      elevation: 2,
     ),
 
     snackBarTheme: SnackBarThemeData(
@@ -220,19 +278,54 @@ ThemeData buildLightTheme(Color accent) {
       ),
     ),
 
+    dialogTheme: DialogThemeData(
+      backgroundColor: cardRaised,
+      surfaceTintColor: accent.withOpacity(0.08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+
     bottomSheetTheme: BottomSheetThemeData(
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      backgroundColor: scheme.surface,
+      backgroundColor: cardRaised,
+      modalBackgroundColor: cardRaised,
+      surfaceTintColor: accent.withOpacity(0.10),
+      showDragHandle: true,
+      dragHandleColor: accent.withOpacity(0.38),
+      clipBehavior: Clip.antiAlias,
+      elevation: 8,
     ),
   );
 }
 
 ThemeData buildDarkTheme(Color accent) {
-  final scheme = ColorScheme.fromSeed(
+  final seeded = ColorScheme.fromSeed(
     seedColor: accent,
     brightness: Brightness.dark,
+  );
+
+  // Grafit koyu tema: siyah değil, lacivert de değil.
+  final canvas = _mix(const Color(0xFF1C1F26), accent, 0.04);
+  final sheet = _mix(const Color(0xFF1E2228), accent, 0.04);
+  final card = _mix(const Color(0xFF22252C), accent, 0.05);
+  final cardRaised = _mix(const Color(0xFF2A2E36), accent, 0.05);
+  const onSurface = Color(0xFFE8EAEE);
+
+  final scheme = seeded.copyWith(
+    surface: sheet,
+    surfaceDim: canvas,
+    surfaceBright: cardRaised,
+    surfaceContainerLowest: card,
+    surfaceContainerLow: card,
+    surfaceContainer: sheet,
+    surfaceContainerHigh: cardRaised,
+    surfaceContainerHighest: _mix(cardRaised, accent, 0.10),
+    onSurface: onSurface,
+    onSurfaceVariant: const Color(0xFFB0B6C0),
+    outline: _mix(const Color(0xFF6B7280), accent, 0.08),
+    outlineVariant: _mix(const Color(0xFF3F4550), accent, 0.08),
+    surfaceTint: accent,
   );
 
   final radius = BorderRadius.circular(16);
@@ -241,85 +334,121 @@ ThemeData buildDarkTheme(Color accent) {
     useMaterial3: true,
     colorScheme: scheme,
     fontFamily: "Poppins",
-
-    scaffoldBackgroundColor: const Color(0xFF0B0D12),
-
+    canvasColor: canvas,
+    scaffoldBackgroundColor: canvas,
     appBarTheme: AppBarTheme(
-      backgroundColor: const Color(0xFF0B0D12),
+      backgroundColor: canvas,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: const TextStyle(
-        color: Colors.white,
+        color: onSurface,
         fontWeight: FontWeight.w700,
         fontSize: 18,
         fontFamily: "Poppins",
       ),
-      iconTheme: const IconThemeData(color: Colors.white),
+      iconTheme: const IconThemeData(color: onSurface),
     ),
-
     cardTheme: CardThemeData(
-      color: const Color(0xFF121826),
+      color: card,
       elevation: 0,
       margin: EdgeInsets.zero,
+      shadowColor: Colors.black.withOpacity(0.28),
       shape: RoundedRectangleBorder(borderRadius: radius),
     ),
-
     dividerTheme: DividerThemeData(
       thickness: 1,
       space: 20,
-      color: scheme.outlineVariant.withOpacity(0.35),
+      color: scheme.outlineVariant.withOpacity(0.55),
     ),
-
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: scheme.outlineVariant.withOpacity(0.5)),
+        borderSide: BorderSide(color: scheme.outlineVariant),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: scheme.outlineVariant.withOpacity(0.5)),
+        borderSide: BorderSide(color: scheme.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: scheme.primary, width: 1.4),
       ),
       filled: true,
-      fillColor: const Color(0xFF121826),
+      fillColor: cardRaised,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     ),
-
+    chipTheme: ChipThemeData(
+      backgroundColor: cardRaised,
+      selectedColor: scheme.primary,
+      side: BorderSide(color: scheme.primary.withOpacity(0.28)),
+      labelStyle: TextStyle(
+        color: scheme.onSurface,
+        fontWeight: FontWeight.w800,
+        fontFamily: "Poppins",
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: card,
+      indicatorColor: scheme.primary.withOpacity(0.28),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        );
+      }),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          fontFamily: "Poppins",
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        );
+      }),
+    ),
     listTileTheme: ListTileThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       iconColor: scheme.onSurfaceVariant,
       textColor: scheme.onSurface,
     ),
-
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: scheme.primary,
       foregroundColor: scheme.onPrimary,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 1,
+      elevation: 2,
     ),
-
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: scheme.inverseSurface,
-      contentTextStyle: TextStyle(
-        color: scheme.onInverseSurface,
+      backgroundColor: cardRaised,
+      contentTextStyle: const TextStyle(
+        color: onSurface,
         fontFamily: "Poppins",
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
       ),
     ),
-
-    bottomSheetTheme: const BottomSheetThemeData(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    dialogTheme: DialogThemeData(
+      backgroundColor: cardRaised,
+      surfaceTintColor: accent.withOpacity(0.12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      backgroundColor: Color(0xFF0B0D12),
+      backgroundColor: cardRaised,
+      modalBackgroundColor: cardRaised,
+      surfaceTintColor: accent.withOpacity(0.12),
+      showDragHandle: true,
+      dragHandleColor: accent.withOpacity(0.45),
+      clipBehavior: Clip.antiAlias,
+      elevation: 8,
     ),
   );
 }

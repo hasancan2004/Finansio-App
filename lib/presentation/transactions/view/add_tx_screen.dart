@@ -15,6 +15,7 @@ import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 import '../../../domain/engine/category_predictor.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 import 'package:finansio/presentation/budgets/viewmodel/budget_providers.dart';
 
@@ -69,9 +70,8 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
 
   bool _saving = false;
 
-  Color _cardBg(ColorScheme cs) => cs.primaryContainer.withOpacity(0.22);
-  BorderSide _cardBorder(ColorScheme cs) =>
-      BorderSide(color: cs.primary.withOpacity(0.10));
+  Color _cardBg(ColorScheme cs) => AppSurfaces.cardFill(cs);
+  BorderSide _cardBorder(ColorScheme cs) => AppSurfaces.cardBorder(cs);
 
   @override
   void initState() {
@@ -635,10 +635,10 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
                       : "Gider kaydı • bütçe uyarısı + anomali kontrolü",
                   trailing: CircleAvatar(
                     radius: 18,
-                    backgroundColor: Colors.white.withOpacity(0.25),
+                    backgroundColor: cs.primary.withOpacity(0.16),
                     child: Icon(
                       _isIncome ? Icons.add : Icons.remove,
-                      color: Colors.white,
+                      color: cs.primary,
                       size: 18,
                     ),
                   ),

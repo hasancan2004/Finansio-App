@@ -10,7 +10,6 @@ class AppScaffold extends StatelessWidget {
   final double headerHeight;
   final double surfaceTopSpacing;
 
-  // ✅ FAB desteği
   final Widget? floatingActionButton;
   final FloatingActionButtonLocation? floatingActionButtonLocation;
 
@@ -28,9 +27,6 @@ class AppScaffold extends StatelessWidget {
     this.floatingActionButtonLocation,
   });
 
-  /// ✅ ÖNEMLİ:
-  /// Projede bir yerde AppScaffold().appBar diye erişen kod var.
-  /// Bu getter o NoSuchMethodError'u bitirir.
   PreferredSizeWidget get appBar => AppBar(
     titleSpacing: 16,
     backgroundColor: Colors.transparent,
@@ -51,17 +47,8 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
     final isDark = theme.brightness == Brightness.dark;
-
-    // ✅ İç yüzey rengi (çok beyaz olmasın diye hafif tint)
-    final surfaceBase = cs.surface;
-    final surfaceTint = isDark
-        ? cs.surface
-        : Color.alphaBlend(
-      cs.primary.withOpacity(0.06),
-      surfaceBase,
-    );
+    final canvas = theme.scaffoldBackgroundColor;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -72,18 +59,24 @@ class AppScaffold extends StatelessWidget {
       appBar: appBar,
       body: Stack(
         children: [
-          // 1) Gradient arka plan
+          // 1) Gradient arka plan (Üst kısımdaki mavi panel)
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF2F5BFF),
-                    Color(0xFF6A5CFF),
-                    Color(0xFF21C8FF),
-                  ],
+                  colors: isDark
+                      ? [
+                          Color.lerp(const Color(0xFF161A22), cs.primary, 0.14)!,
+                          Color.lerp(const Color(0xFF181C24), cs.primary, 0.10)!,
+                          const Color(0xFF15181E),
+                        ]
+                      : [
+                          Color.lerp(const Color(0xFF1D4ED8), cs.primary, 0.45)!,
+                          Color.lerp(const Color(0xFF4F46E5), cs.primary, 0.35)!,
+                          Color.lerp(const Color(0xFF06B6D4), cs.primary, 0.28)!,
+                        ],
                 ),
               ),
             ),
@@ -114,13 +107,27 @@ class AppScaffold extends StatelessWidget {
             top: surfaceTopSpacing,
             child: Container(
               decoration: BoxDecoration(
-                color: surfaceTint,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: isDark
+                      ? [
+                          canvas,
+                          canvas,
+                          Color.lerp(canvas, const Color(0xFF242830), 0.45)!,
+                        ]
+                      : [
+                          Color.lerp(canvas, cs.primary, 0.10)!,
+                          canvas,
+                          Color.lerp(canvas, const Color(0xFF5BB8A8), 0.16)!,
+                        ],
+                ),
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(surfaceRadius),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.14),
+                    color: Colors.black.withOpacity(isDark ? 0.14 : 0.10),
                     blurRadius: 26,
                     spreadRadius: -12,
                     offset: const Offset(0, -6),
@@ -129,27 +136,9 @@ class AppScaffold extends StatelessWidget {
               ),
               child: SafeArea(
                 top: false,
-                child: Container(
-                  // ✅ içerikte de çok hafif gradient tint
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(surfaceRadius),
-                    ),
-                    gradient: isDark
-                        ? null
-                        : LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        cs.primaryContainer.withOpacity(0.10),
-                        surfaceTint,
-                      ],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: bodyPadding,
-                    child: body,
-                  ),
+                child: Padding(
+                  padding: bodyPadding,
+                  child: body,
                 ),
               ),
             ),

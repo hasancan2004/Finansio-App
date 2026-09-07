@@ -5,6 +5,7 @@ import '../../settings/view/settings_screen.dart';
 import '../../transactions/view/home_screen.dart';
 import '../../settings/view/categories_screen.dart';
 import '../../reports/view/reports_screen.dart';
+import '../theme/app_surfaces.dart';
 
 
 import '../../transactions/viewmodel/tx_providers.dart';
@@ -66,8 +67,8 @@ class _BottomNavShellState extends ConsumerState<BottomNavShell> {
         selectedIndex: _currentIndex,
         onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
         height: 68,
-        backgroundColor: cs.surface,
-        indicatorColor: cs.primary.withOpacity(0.14),
+        backgroundColor: AppSurfaces.cardFill(cs),
+        indicatorColor: cs.primary.withOpacity(0.18),
         destinations: [
           NavigationDestination(
             icon: showHomeBadge

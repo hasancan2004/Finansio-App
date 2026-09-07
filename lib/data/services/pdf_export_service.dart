@@ -1,23 +1,45 @@
-// lib/services/pdf_export_service.dart
+// lib/data/services/pdf_export_service.dart
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:intl/intl.dart'; // ✅ INTL PAKETİ EKLENDİ
+import 'package:intl/intl.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:open_filex/open_filex.dart';
+
 import 'package:finansio/domain/models/summary.dart';
 import 'package:finansio/data/database/app_database.dart';
 
 class PdfExportService {
+  static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+  static bool _isInit = false;
 
-  // ✅ YENİ: Parayı 100.000,00 TL formatına çeviren yardımcı fonksiyon
+  static Future<void> _initNotifications() async {
+    if (_isInit) return;
+
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings();
+    const initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+
+    await _notifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (response) async {
+        if (response.payload != null) {
+          await OpenFilex.open(response.payload!);
+        }
+      },
+    );
+    _isInit = true;
+  }
+
   static String _formatCurrency(double amount) {
     final formatter = NumberFormat("#,##0.00", "tr_TR");
     return '${formatter.format(amount)} TL';
   }
 
-  // 1. MEVCUT PAYLAŞMA METODU (WhatsApp, Mail vb. için)
+  // ✅ 1. PAYLAŞMA METODU (WhatsApp, Mail vb. için) - ReportsScreen'de kullanılıyor
   static Future<void> generateAndShareMonthlyReport({
     required String monthName,
     required Summary summary,
@@ -32,7 +54,7 @@ class PdfExportService {
     );
   }
 
-  // 2. YENİ İNDİRME METODU (Dosyayı cihaza kaydeder ve yolunu döner)
+  // ✅ 2. YENİ İNDİRME METODU (Dosyayı cihaza kaydeder ve yolunu döner) - ReportsScreen'de kullanılıyor
   static Future<String?> downloadMonthlyReport({
     required String monthName,
     required Summary summary,
@@ -44,13 +66,11 @@ class PdfExportService {
     try {
       Directory? directory;
       if (Platform.isAndroid) {
-        // Android cihazlarda doğrudan İndirilenler klasörüne erişim
         directory = Directory('/storage/emulated/0/Download');
         if (!await directory.exists()) {
           directory = await getExternalStorageDirectory();
         }
       } else if (Platform.isIOS) {
-        // iOS için Dokümanlar klasörü
         directory = await getApplicationDocumentsDirectory();
       }
 
@@ -58,12 +78,71 @@ class PdfExportService {
         final String filePath = '${directory.path}/Finansio_Rapor_$monthName.pdf';
         final File file = File(filePath);
         await file.writeAsBytes(bytes);
-        return filePath; // Başarılı olursa dosya yolunu dön
+        return filePath;
       }
     } catch (e) {
       print("İndirme hatası: $e");
     }
     return null;
+  }
+
+  // ✅ 3. İNDİRME VE BİLDİRİM GÖNDERME METODU - ProfileDashboardScreen'de kullanılıyor
+  static Future<void> downloadAndNotifyMonthlyReport({
+    required String monthName,
+    required Summary summary,
+    required List<Tx> transactions,
+  }) async {
+    await _initNotifications();
+
+    final pdf = await _buildPdfDocument(monthName, summary, transactions);
+    final Uint8List bytes = await pdf.save();
+
+    String? filePath;
+
+    try {
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory != null) {
+        filePath = '${directory.path}/Finansio_Rapor_$monthName.pdf';
+        final File file = File(filePath);
+        await file.writeAsBytes(bytes);
+      }
+    } catch (e) {
+      print("İndirme hatası: $e");
+      return;
+    }
+
+    if (filePath != null) {
+      const androidDetails = AndroidNotificationDetails(
+        'pdf_downloads',
+        'PDF Raporları',
+        channelDescription: 'İndirilen rapor bildirimleri',
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      );
+
+      const platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: DarwinNotificationDetails(),
+      );
+
+      await _notifications.show(
+        DateTime.now().millisecond,
+        'Rapor İndirildi 📄',
+        'Finansio_Rapor_$monthName.pdf kaydedildi. Açmak için dokun.',
+        platformDetails,
+        payload: filePath,
+      );
+    }
   }
 
   // Ortak PDF Tasarım Oluşturucu
@@ -132,7 +211,6 @@ class PdfExportService {
         children: [
           pw.Text(title, style: pw.TextStyle(font: font, fontSize: 12, color: PdfColors.grey700)),
           pw.SizedBox(height: 4),
-          // ✅ FORMAT FONKSİYONU KULLANILDI
           pw.Text(
             _formatCurrency(amount),
             style: pw.TextStyle(font: fontBold, fontSize: 16, color: color),
@@ -148,7 +226,6 @@ class PdfExportService {
         t.date.toIso8601String().split('T')[0],
         t.category.name,
         t.note ?? '-',
-        // ✅ FORMAT FONKSİYONU KULLANILDI
         _formatCurrency(t.amount),
       ];
     }).toList();

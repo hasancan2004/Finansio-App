@@ -133,7 +133,8 @@ final aiInsightsProvider = Provider<AsyncValue<AiInsightsData>>((ref) {
   // Expense change %
   double expenseChangePct;
   if (lastSum.expense <= 0) {
-    expenseChangePct = thisSum.expense > 0 ? 100 : 0;
+    // ✅ Geçen ay da bu ay da gider 0 ise (veri yoksa) NaN döndür ki UI "Veri Yok" desin
+    expenseChangePct = thisSum.expense > 0 ? 100 : double.nan;
   } else {
     expenseChangePct =
         ((thisSum.expense - lastSum.expense) / lastSum.expense) * 100.0;

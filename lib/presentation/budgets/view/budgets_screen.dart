@@ -7,6 +7,7 @@ import '../../../data/database/app_database.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 class BudgetsScreen extends ConsumerWidget {
   const BudgetsScreen({super.key});
@@ -30,9 +31,8 @@ class BudgetsScreen extends ConsumerWidget {
     return names[m];
   }
 
-  Color _cardBg(ColorScheme cs) => cs.primaryContainer.withOpacity(0.22);
-  BorderSide _cardBorder(ColorScheme cs) =>
-      BorderSide(color: cs.primary.withOpacity(0.10));
+  Color _cardBg(ColorScheme cs) => AppSurfaces.cardFill(cs);
+  BorderSide _cardBorder(ColorScheme cs) => AppSurfaces.cardBorder(cs);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

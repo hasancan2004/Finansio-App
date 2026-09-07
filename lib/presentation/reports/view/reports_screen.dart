@@ -100,8 +100,8 @@ class ReportsScreen extends ConsumerWidget {
                       },
                       child: CircleAvatar(
                         radius: 18,
-                        backgroundColor: Colors.white.withOpacity(0.25),
-                        child: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
+                        backgroundColor: cs.primary.withOpacity(0.16),
+                        child: Icon(Icons.download_rounded, color: cs.primary, size: 18),
                       ),
                     ),
                   ),
@@ -140,8 +140,8 @@ class ReportsScreen extends ConsumerWidget {
                       },
                       child: CircleAvatar(
                         radius: 18,
-                        backgroundColor: Colors.white.withOpacity(0.25),
-                        child: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 16),
+                        backgroundColor: cs.primary.withOpacity(0.16),
+                        child: Icon(Icons.ios_share_rounded, color: cs.primary, size: 16),
                       ),
                     ),
                   ),

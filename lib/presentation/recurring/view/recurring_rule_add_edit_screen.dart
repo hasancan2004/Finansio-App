@@ -321,10 +321,10 @@ class _RecurringRuleAddEditScreenState
               subtitle: "Kira / abonelik / maaş gibi",
               trailing: CircleAvatar(
                 radius: 18,
-                backgroundColor: Colors.white.withOpacity(0.25),
+                backgroundColor: cs.primary.withOpacity(0.16),
                 child: Icon(
                   _isIncome ? Icons.add : Icons.remove,
-                  color: Colors.white,
+                  color: cs.primary,
                   size: 18,
                 ),
               ),

@@ -11,6 +11,7 @@ import 'package:finansio/domain/engine/risk_score.dart';
 
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 class RiskDetailsScreen extends ConsumerWidget {
   const RiskDetailsScreen({super.key});
@@ -38,9 +39,8 @@ class RiskDetailsScreen extends ConsumerWidget {
               subtitle: "Limit ve bütçelerden hesaplanır", // ✅ Metin güncellendi
               trailing: CircleAvatar(
                 radius: 18,
-                backgroundColor: Colors.white.withOpacity(0.25),
-                child: const Icon(Icons.shield_outlined,
-                    color: Colors.white, size: 18),
+                backgroundColor: cs.primary.withOpacity(0.16),
+                child: Icon(Icons.shield_outlined, color: cs.primary, size: 18),
               ),
             ),
           ),
@@ -51,7 +51,7 @@ class RiskDetailsScreen extends ConsumerWidget {
               children: [
                 // 1) ÜST KART: skor + level + nedenler
                 Card(
-                  color: cs.primaryContainer.withOpacity(0.22),
+                  color: AppSurfaces.cardFill(cs),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
                     side: BorderSide(color: cs.primary.withOpacity(0.10)),
@@ -191,7 +191,7 @@ class RiskDetailsScreen extends ConsumerWidget {
 
                 // 2) BREAKDOWN: Global Limit / Kategori Bütçeleri
                 Card(
-                  color: cs.primaryContainer.withOpacity(0.22),
+                  color: AppSurfaces.cardFill(cs),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
                     side: BorderSide(color: cs.primary.withOpacity(0.10)),
@@ -405,7 +405,7 @@ class RiskDetailsScreen extends ConsumerWidget {
 
                 // 3) AKSİYON ÖNERİLERİ
                 Card(
-                  color: cs.primaryContainer.withOpacity(0.22),
+                  color: AppSurfaces.cardFill(cs),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
                     side: BorderSide(color: cs.primary.withOpacity(0.10)),

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 class CategorySpikeScreen extends ConsumerWidget {
   const CategorySpikeScreen({super.key});
@@ -107,7 +108,7 @@ class CategorySpikeScreen extends ConsumerWidget {
                       final isIncrease = percentChange >= 0;
 
                       return Card(
-                        color: cs.primaryContainer.withOpacity(0.22),
+                        color: AppSurfaces.cardFill(cs),
                         margin: const EdgeInsets.only(bottom: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finansio/data/database/app_database.dart';
+import 'package:finansio/presentation/shared/theme/app_surfaces.dart';
 import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 
 class TxFilterSheet extends ConsumerStatefulWidget {
@@ -73,17 +74,8 @@ class _TxFilterSheetState extends ConsumerState<TxFilterSheet> {
     final cs = theme.colorScheme;
     final range = ref.watch(txFilterProvider);
 
-    // Sheet arka planı: hafif mavi/mor
-    final sheetBg = cs.surface.withOpacity(0.98);
-    final tint = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        cs.primary.withOpacity(0.10),
-        cs.secondary.withOpacity(0.06),
-        Colors.transparent,
-      ],
-    );
+    final sheetDecoration = AppSurfaces.sheetDecoration(cs);
+    final fieldFill = AppSurfaces.cardFill(cs);
 
     return SafeArea(
       child: Padding(
@@ -96,28 +88,13 @@ class _TxFilterSheetState extends ConsumerState<TxFilterSheet> {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            decoration: BoxDecoration(
-              color: sheetBg,
+            decoration: sheetDecoration.copyWith(
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: cs.outlineVariant.withOpacity(0.25)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
-                  blurRadius: 24,
-                  spreadRadius: -8,
-                  offset: const Offset(0, 18),
-                ),
-              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(22),
               child: Stack(
                 children: [
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Container(decoration: BoxDecoration(gradient: tint)),
-                    ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                     child: Column(
@@ -128,7 +105,7 @@ class _TxFilterSheetState extends ConsumerState<TxFilterSheet> {
                           width: 44,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: cs.outlineVariant.withOpacity(0.55),
+                            color: cs.primary.withOpacity(0.35),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -225,7 +202,7 @@ class _TxFilterSheetState extends ConsumerState<TxFilterSheet> {
                           decoration: InputDecoration(
                             labelText: 'Kategori',
                             filled: true,
-                            fillColor: cs.surfaceVariant.withOpacity(0.25),
+                            fillColor: fieldFill,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide.none,
@@ -246,7 +223,7 @@ class _TxFilterSheetState extends ConsumerState<TxFilterSheet> {
                                   labelText: 'Min tutar',
                                   hintText: 'Örn: -100',
                                   filled: true,
-                                  fillColor: cs.surfaceVariant.withOpacity(0.25),
+                                  fillColor: fieldFill,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
                                     borderSide: BorderSide.none,
@@ -263,7 +240,7 @@ class _TxFilterSheetState extends ConsumerState<TxFilterSheet> {
                                   labelText: 'Max tutar',
                                   hintText: 'Örn: 1000',
                                   filled: true,
-                                  fillColor: cs.surfaceVariant.withOpacity(0.25),
+                                  fillColor: fieldFill,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
                                     borderSide: BorderSide.none,
@@ -316,7 +293,7 @@ class _TxFilterSheetState extends ConsumerState<TxFilterSheet> {
       ),
       selected: selected,
       selectedColor: cs.primary.withOpacity(0.92),
-      backgroundColor: cs.surfaceVariant.withOpacity(0.30),
+      backgroundColor: AppSurfaces.cardFill(cs),
       onSelected: (_) => onTap(),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),

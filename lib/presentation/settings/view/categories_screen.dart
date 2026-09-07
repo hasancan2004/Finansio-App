@@ -7,13 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
 
-  Color _cardBg(ColorScheme cs) => cs.primaryContainer.withOpacity(0.22);
-  BorderSide _cardBorder(ColorScheme cs) =>
-      BorderSide(color: cs.primary.withOpacity(0.10));
+  Color _cardBg(ColorScheme cs) => AppSurfaces.cardFill(cs);
+  BorderSide _cardBorder(ColorScheme cs) => AppSurfaces.cardBorder(cs);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -111,9 +111,8 @@ class CategoriesScreen extends ConsumerWidget {
                   subtitle: "Gelir / gider kayıtların için düzenli etiketler",
                   trailing: CircleAvatar(
                     radius: 18,
-                    backgroundColor: Colors.white.withOpacity(0.25),
-                    child:
-                    const Icon(Icons.category, color: Colors.white, size: 18),
+                    backgroundColor: cs.primary.withOpacity(0.16),
+                    child: Icon(Icons.category, color: cs.primary, size: 18),
                   ),
                 ),
               ),
@@ -187,6 +186,8 @@ class CategoriesScreen extends ConsumerWidget {
                             onDismissed: (_) async => _deleteCategory(c),
                             child: Card(
                               color: _cardBg(cs),
+                              elevation: 0,
+                              shadowColor: cs.primary.withOpacity(0.12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(18),
                                 side: _cardBorder(cs),

@@ -7,6 +7,7 @@ import 'package:finansio/data/database/app_database.dart';
 import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/theme/app_surfaces.dart';
 
 class WeeklySummaryScreen extends ConsumerWidget {
   const WeeklySummaryScreen({super.key});
@@ -209,7 +210,7 @@ class WeeklySummaryScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       ...topTxs.map((t) => Card(
-                        color: cs.primaryContainer.withOpacity(0.22),
+                        color: AppSurfaces.cardFill(cs),
                         margin: const EdgeInsets.only(bottom: 8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -259,7 +260,7 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.primaryContainer.withOpacity(0.22),
+        color: AppSurfaces.cardFill(cs),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: cs.primary.withOpacity(0.10)),
       ),
