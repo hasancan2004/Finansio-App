@@ -1,15 +1,12 @@
+// lib/presentation/settings/viewmodel/theme_provider.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// ------------------ Keys ------------------
 const _kThemeModeKey = 'theme_mode';
 const _kAccentKey = 'accent_color';
 
-/// Varsayılan accent (uygulama ilk açıldığında)
 const _defaultAccent = AccentColorKey.blue;
-
-/// ------------------ ThemeMode Encode / Decode ------------------
 
 int _encodeThemeMode(ThemeMode mode) {
   switch (mode) {
@@ -34,8 +31,6 @@ ThemeMode _decodeThemeMode(int value) {
       return ThemeMode.system;
   }
 }
-
-/// ------------------ Accent Enum & Yardımcılar ------------------
 
 enum AccentColorKey {
   blue,
@@ -69,8 +64,6 @@ Color accentColorFromKey(AccentColorKey key) {
   }
 }
 
-/// ------------------ ThemeController (Mode) ------------------
-
 class ThemeController extends StateNotifier<ThemeMode> {
   ThemeController() : super(ThemeMode.system) {
     _load();
@@ -103,8 +96,6 @@ StateNotifierProvider<ThemeController, ThemeMode>((ref) {
   return ThemeController();
 });
 
-/// ------------------ AccentController ------------------
-
 class AccentController extends StateNotifier<AccentColorKey> {
   AccentController() : super(_defaultAccent) {
     _load();
@@ -131,20 +122,18 @@ StateNotifierProvider<AccentController, AccentColorKey>((ref) {
 
 Color _mix(Color a, Color b, double t) => Color.lerp(a, b, t)!;
 
-/// ------------------ Tema Tanımları (Sade Modern) ------------------
-
 ThemeData buildLightTheme(Color accent) {
   final seeded = ColorScheme.fromSeed(
     seedColor: accent,
     brightness: Brightness.light,
   );
 
-  // Zemin doygun; kartlar buz mavisi — beyaz değil, zeminden de açık.
-  final canvas = _mix(const Color(0xFFB7CFE0), accent, 0.18);
-  final sheet = _mix(const Color(0xFFC4D8E8), accent, 0.14);
-  final card = _mix(const Color(0xFFD8E8F3), accent, 0.12);
-  final cardRaised = _mix(const Color(0xFFE0EEF6), accent, 0.10);
-  final well = _mix(const Color(0xFFA9C4D8), accent, 0.16);
+  // ✅ Mavi tonlar yerine ferah, modern açık gri ve saf beyaz
+  const canvas = Color(0xFFF4F6F9);
+  const sheet = Colors.white;
+  const card = Colors.white;
+  const cardRaised = Colors.white;
+  const well = Color(0xFFE9ECEF);
   const onSurface = Color(0xFF142033);
 
   final scheme = seeded.copyWith(
@@ -155,12 +144,12 @@ ThemeData buildLightTheme(Color accent) {
     surfaceContainerLow: card,
     surfaceContainer: sheet,
     surfaceContainerHigh: well,
-    surfaceContainerHighest: _mix(well, accent, 0.10),
+    surfaceContainerHighest: _mix(well, accent, 0.05),
     onSurface: onSurface,
     onSurfaceVariant: const Color(0xFF4B5C70),
-    outline: _mix(const Color(0xFF8EA6BA), accent, 0.18),
-    outlineVariant: _mix(const Color(0xFFB9CDDC), accent, 0.14),
-    surfaceTint: accent,
+    outline: _mix(const Color(0xFFB0BEC5), accent, 0.10),
+    outlineVariant: _mix(const Color(0xFFCFD8DC), accent, 0.10),
+    surfaceTint: Colors.transparent, // M3 mavi boyamasını engeller
   );
 
   final radius = BorderRadius.circular(16);
@@ -190,7 +179,7 @@ ThemeData buildLightTheme(Color accent) {
       color: card,
       elevation: 0,
       margin: EdgeInsets.zero,
-      shadowColor: accent.withOpacity(0.18),
+      shadowColor: accent.withOpacity(0.12),
       shape: RoundedRectangleBorder(borderRadius: radius),
     ),
 
@@ -219,9 +208,9 @@ ThemeData buildLightTheme(Color accent) {
     ),
 
     chipTheme: ChipThemeData(
-      backgroundColor: scheme.primaryContainer.withOpacity(0.55),
-      selectedColor: scheme.primary,
-      side: BorderSide(color: scheme.primary.withOpacity(0.18)),
+      backgroundColor: scheme.surface,
+      selectedColor: scheme.primaryContainer,
+      side: BorderSide(color: scheme.primary.withOpacity(0.15)),
       labelStyle: TextStyle(
         color: scheme.primary,
         fontWeight: FontWeight.w800,
@@ -280,7 +269,7 @@ ThemeData buildLightTheme(Color accent) {
 
     dialogTheme: DialogThemeData(
       backgroundColor: cardRaised,
-      surfaceTintColor: accent.withOpacity(0.08),
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
 
@@ -290,9 +279,9 @@ ThemeData buildLightTheme(Color accent) {
       ),
       backgroundColor: cardRaised,
       modalBackgroundColor: cardRaised,
-      surfaceTintColor: accent.withOpacity(0.10),
+      surfaceTintColor: Colors.transparent,
       showDragHandle: true,
-      dragHandleColor: accent.withOpacity(0.38),
+      dragHandleColor: scheme.onSurfaceVariant.withOpacity(0.38),
       clipBehavior: Clip.antiAlias,
       elevation: 8,
     ),
@@ -305,7 +294,6 @@ ThemeData buildDarkTheme(Color accent) {
     brightness: Brightness.dark,
   );
 
-  // Grafit koyu tema: siyah değil, lacivert de değil.
   final canvas = _mix(const Color(0xFF1C1F26), accent, 0.04);
   final sheet = _mix(const Color(0xFF1E2228), accent, 0.04);
   final card = _mix(const Color(0xFF22252C), accent, 0.05);

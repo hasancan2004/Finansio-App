@@ -1,7 +1,11 @@
+// lib/presentation/shared/theme/app_surfaces.dart
 import 'package:flutter/material.dart';
 
-/// Açık temada kart / sheet yüzeyleri: zeminle aynı tona düşmesin.
 class AppSurfaces {
+
+  // ==========================================
+  // ✅ ESKİ METOTLAR (Diğer sayfaların hata vermemesi için geri getirildi)
+  // ==========================================
   static Color cardFill(ColorScheme cs) {
     if (cs.brightness == Brightness.dark) {
       return Color.lerp(const Color(0xFF262A32), cs.primaryContainer, 0.08)!;
@@ -30,6 +34,45 @@ class AppSurfaces {
     ];
   }
 
+  // ==========================================
+  // ✅ YENİ PREMIUM METOTLAR (Ana Ekran ve Ayarlar için)
+  // ==========================================
+
+  // Ayarlar ekranındaki mükemmel Premium kart tasarımı
+  static BoxDecoration cardDecoration(ColorScheme cs) {
+    final isDark = cs.brightness == Brightness.dark;
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(18),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? [
+          Color.lerp(const Color(0xFF2A2E36), cs.primaryContainer, 0.08)!,
+          const Color(0xFF1E2228),
+        ]
+            : [
+          Color.lerp(const Color(0xFFD6E7F2), cs.primaryContainer, 0.38)!,
+          Color.lerp(const Color(0xFFDEECF5), cs.secondaryContainer, 0.32)!,
+        ],
+      ),
+      border: Border.all(
+        color: cs.primary.withOpacity(isDark ? 0.16 : 0.20),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: isDark
+              ? Colors.black.withOpacity(0.35)
+              : cs.primary.withOpacity(0.12),
+          blurRadius: 18,
+          spreadRadius: -10,
+          offset: const Offset(0, 10),
+        ),
+      ],
+    );
+  }
+
+  // Bottom Sheet (Aşağıdan açılan menü) için tatlı gradient
   static BoxDecoration sheetDecoration(ColorScheme cs) {
     final isDark = cs.brightness == Brightness.dark;
     return BoxDecoration(
@@ -39,29 +82,21 @@ class AppSurfaces {
         end: Alignment.bottomRight,
         colors: isDark
             ? [
-                Color.lerp(const Color(0xFF2E333C), cs.primary, 0.08)!,
-                const Color(0xFF262A32),
-                const Color(0xFF22262C),
-              ]
+          Color.lerp(const Color(0xFF2E333C), cs.primary, 0.08)!,
+          const Color(0xFF262A32),
+          const Color(0xFF22262C),
+        ]
             : [
-                cs.primaryContainer.withOpacity(0.70),
-                Color.lerp(
-                  const Color(0xFFD8E8F3),
-                  cs.secondaryContainer,
-                  0.42,
-                )!,
-                Color.lerp(
-                  const Color(0xFFE0EEF6),
-                  cs.primaryContainer,
-                  0.32,
-                )!,
-              ],
-        stops: isDark ? const [0, 0.42, 1] : const [0, 0.26, 1],
+          Color.lerp(const Color(0xFFD6E7F2), cs.primaryContainer, 0.25)!,
+          Color.lerp(const Color(0xFFDEECF5), cs.surface, 0.50)!,
+          const Color(0xFFF4F6F9), // Tatlı kırık gri/beyaz
+        ],
+        stops: isDark ? const [0, 0.42, 1] : const [0, 0.40, 1],
       ),
-      border: Border.all(color: cs.primary.withOpacity(isDark ? 0.14 : 0.16)),
+      border: Border.all(color: cs.primary.withOpacity(isDark ? 0.14 : 0.15)),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(isDark ? 0.35 : 0.14),
+          color: Colors.black.withOpacity(isDark ? 0.35 : 0.15),
           blurRadius: 28,
           spreadRadius: -8,
           offset: const Offset(0, -8),

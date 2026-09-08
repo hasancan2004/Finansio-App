@@ -307,17 +307,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: 12),
 
-          // SUMMARY
+          // ✅ SUMMARY (Ayarlar ekranı gradient tasarımı)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              color: AppSurfaces.cardFill(cs),
-              elevation: isDark ? 0 : 1,
-              shadowColor: cs.primary.withOpacity(0.22),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: AppSurfaces.cardBorder(cs),
-              ),
+            child: Container(
+              decoration: AppSurfaces.cardDecoration(cs),
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: _SummaryCard(summary: summary),
@@ -325,19 +319,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
-          // RANGE
+          // ✅ RANGE (Ayarlar ekranı gradient tasarımı)
           if (range != null) ...[
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                color: AppSurfaces.cardFill(cs),
-                elevation: isDark ? 0 : 1,
-                shadowColor: cs.primary.withOpacity(0.22),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: AppSurfaces.cardBorder(cs),
-                ),
+              child: Container(
+                decoration: AppSurfaces.cardDecoration(cs),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Row(
@@ -557,8 +545,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Expanded(
                       child: Container(
                         height: 1,
-                        // ✅ Çizgi rengini açık temada daha belirgin hale getirdik
-                        color: cs.outlineVariant.withOpacity(isDark ? 0.35 : 0.70),
+                        // ✅ Çizgi rengini cs.onSurface tabanlı yaparak tam kontrast sağladık
+                        color: cs.onSurface.withOpacity(isDark ? 0.25 : 0.35),
                       ),
                     ),
                   ],
@@ -613,109 +601,107 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     await deleteTx(t);
                     return false;
                   },
-                  child: Card(
-                    color: AppSurfaces.cardFill(cs),
-                    elevation: isDark ? 0 : 1,
-                    shadowColor: cs.primary.withOpacity(0.20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      side: AppSurfaces.cardBorder(cs),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () => goEdit(t),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 22,
-                              backgroundColor:
-                              _hexToColor(t.category.colorHex).withOpacity(.90),
-                              child: Text(
-                                initial,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
+                  // ✅ İŞLEM KARTLARI (Ayarlar Ekranı Gradient Tasarımı ile Değiştirildi)
+                  child: Container(
+                    decoration: AppSurfaces.cardDecoration(cs),
+                    child: Material(
+                      color: Colors.transparent, // Tıklama efektinin(ripple) çalışması için şeffaf zemin
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(18),
+                        onTap: () => goEdit(t),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor:
+                                _hexToColor(t.category.colorHex).withOpacity(.90),
+                                child: Text(
+                                  initial,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      t.category.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      [
+                                        if ((t.note ?? '').isNotEmpty) t.note!,
+                                        timeFmt.format(localDate),
+                                      ].join(' • '),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    t.category.name,
-                                    style: const TextStyle(
+                                    _formatTry(t.amount.abs()),
+                                    style: TextStyle(
+                                      color: isIncome
+                                          ? Colors.green
+                                          : _expenseAmountColor(isDark),
                                       fontWeight: FontWeight.w900,
                                       fontSize: 15,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    [
-                                      if ((t.note ?? '').isNotEmpty) t.note!,
-                                      timeFmt.format(localDate),
-                                    ].join(' • '),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall,
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      InkWell(
+                                        borderRadius: BorderRadius.circular(12),
+                                        onTap: () => goEdit(t),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Icon(
+                                            Icons.edit_outlined,
+                                            size: 20,
+                                            color: cs.primary,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      InkWell(
+                                        borderRadius: BorderRadius.circular(12),
+                                        onTap: () => deleteTx(t),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Icon(
+                                            Icons.delete_outline,
+                                            size: 20,
+                                            color: cs.error,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  _formatTry(t.amount.abs()),
-                                  style: TextStyle(
-                                    color: isIncome
-                                        ? Colors.green
-                                        : _expenseAmountColor(isDark),
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    InkWell(
-                                      borderRadius: BorderRadius.circular(12),
-                                      onTap: () => goEdit(t),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(6),
-                                        child: Icon(
-                                          Icons.edit_outlined,
-                                          size: 20,
-                                          color: cs.primary,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    InkWell(
-                                      borderRadius: BorderRadius.circular(12),
-                                      onTap: () => deleteTx(t),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(6),
-                                        child: Icon(
-                                          Icons.delete_outline,
-                                          size: 20,
-                                          color: cs.error,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

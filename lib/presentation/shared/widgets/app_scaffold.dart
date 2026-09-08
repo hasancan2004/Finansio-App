@@ -1,3 +1,4 @@
+// lib/presentation/shared/widgets/app_scaffold.dart
 import 'package:flutter/material.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -59,7 +60,7 @@ class AppScaffold extends StatelessWidget {
       appBar: appBar,
       body: Stack(
         children: [
-          // 1) Gradient arka plan (Üst kısımdaki mavi panel)
+          // 1) Gradient arka plan (Üst kısımdaki panel)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -68,15 +69,15 @@ class AppScaffold extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? [
-                          Color.lerp(const Color(0xFF161A22), cs.primary, 0.14)!,
-                          Color.lerp(const Color(0xFF181C24), cs.primary, 0.10)!,
-                          const Color(0xFF15181E),
-                        ]
+                    Color.lerp(const Color(0xFF1E3A8A), cs.primary, 0.40)!,
+                    Color.lerp(const Color(0xFF4338CA), cs.primary, 0.32)!,
+                    Color.lerp(const Color(0xFF0E7490), cs.primary, 0.28)!,
+                  ]
                       : [
-                          Color.lerp(const Color(0xFF1D4ED8), cs.primary, 0.45)!,
-                          Color.lerp(const Color(0xFF4F46E5), cs.primary, 0.35)!,
-                          Color.lerp(const Color(0xFF06B6D4), cs.primary, 0.28)!,
-                        ],
+                    Color.lerp(const Color(0xFF1D4ED8), cs.primary, 0.45)!,
+                    Color.lerp(const Color(0xFF4F46E5), cs.primary, 0.35)!,
+                    Color.lerp(const Color(0xFF06B6D4), cs.primary, 0.28)!,
+                  ],
                 ),
               ),
             ),
@@ -112,22 +113,23 @@ class AppScaffold extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: isDark
                       ? [
-                          canvas,
-                          canvas,
-                          Color.lerp(canvas, const Color(0xFF242830), 0.45)!,
-                        ]
+                    Color.lerp(canvas, cs.primary, 0.07)!,
+                    canvas,
+                    Color.lerp(canvas, const Color(0xFF2A2E36), 0.35)!,
+                  ]
                       : [
-                          Color.lerp(canvas, cs.primary, 0.10)!,
-                          canvas,
-                          Color.lerp(canvas, const Color(0xFF5BB8A8), 0.16)!,
-                        ],
+                    // ✅ Mavi/Turkuaz gradient tamamen iptal edildi. Ferah gri.
+                    canvas,
+                    canvas,
+                    const Color(0xFFE9ECEF),
+                  ],
                 ),
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(surfaceRadius),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.14 : 0.10),
+                    color: Colors.black.withOpacity(isDark ? 0.14 : 0.06),
                     blurRadius: 26,
                     spreadRadius: -12,
                     offset: const Offset(0, -6),
