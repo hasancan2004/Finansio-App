@@ -19,27 +19,15 @@ import 'package:drift/drift.dart' show Value;
 
 import 'data/services/notification_service.dart';
 
-// ✅ YENİ: Uygulamanın her yerinden sayfa değiştirebilmek için global anahtar
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   final db = AppDatabase();
 
-  debugPrint('[Main] NotificationService.init()');
-  await NotificationService.init();
-
-  debugPrint('[Main] Bildirim zamanlayıcıları kuruluyor...');
-  try {
-    await NotificationService.ensureDailyScheduled();
-    await NotificationService.ensureWeeklyTrendScheduled(); // ✅ HAFTALIK BİLDİRİM TETİKLEYİCİ
-    debugPrint('[Main] Bildirim kurulumları tamamlandı');
-  } catch (e, st) {
-    debugPrint('[Main] Bildirim ERROR: $e');
-    debugPrint('$st');
-  }
-
+  // ✅ ÇÖZÜM 1: Arayüz çizimini hiçbir şeyin bekletmemesi (bloklamaması) için
+  // runApp metodunu her şeyden önceye aldık. Uygulama anında renderlanacak.
   runApp(
     ProviderScope(
       overrides: [
@@ -48,6 +36,19 @@ void main() async {
       child: const FinansioApp(),
     ),
   );
+
+  // ✅ ÇÖZÜM 2: Bildirimleri, uygulama tamamen ayağa kalktıktan 1 saniye sonra
+  // arka planda sessizce başlatıyoruz. Böylece açılışı ASLA donduramaz.
+  Future.delayed(const Duration(seconds: 1), () async {
+    try {
+      debugPrint('[Main] NotificationService başlatılıyor...');
+      await NotificationService.init();
+      await NotificationService.ensureDailyScheduled();
+      await NotificationService.ensureWeeklyTrendScheduled();
+    } catch (e) {
+      debugPrint('[Main] Bildirim Hatası: $e');
+    }
+  });
 }
 
 class FinansioApp extends ConsumerWidget {
@@ -80,7 +81,7 @@ class FinansioApp extends ConsumerWidget {
       routes: {
         '/home': (_) => const BottomNavShell(),
         '/budgets': (_) => const BudgetsScreen(),
-        '/reports': (_) => const BottomNavShell(), // ✅ Tıklanınca uygulamayı açıp navigasyona yönlendirir
+        '/reports': (_) => const BottomNavShell(),
         '/weekly_summary': (_) => const WeeklySummaryScreen(),
         '/category_spike': (_) => const CategorySpikeScreen(),
       },
@@ -88,7 +89,6 @@ class FinansioApp extends ConsumerWidget {
   }
 }
 
-/// ✅ Uygulama ilk açılış kontrolü + demo seed burada
 class _Bootstrapper extends ConsumerStatefulWidget {
   const _Bootstrapper({super.key});
 
@@ -98,6 +98,7 @@ class _Bootstrapper extends ConsumerStatefulWidget {
 
 class _BootstrapperState extends ConsumerState<_Bootstrapper> {
   bool? _seen;
+  String? _errorMsg; // Hata olursa ekrana basmak için
 
   static const _kSeenOnboarding = 'seen_onboarding';
   static const _kDemoSeeded = 'demo_seeded_v1';
@@ -109,32 +110,58 @@ class _BootstrapperState extends ConsumerState<_Bootstrapper> {
   }
 
   Future<void> _loadAndPrepare() async {
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    final seen = prefs.getBool(_kSeenOnboarding) ?? false;
-    final demoSeeded = prefs.getBool(_kDemoSeeded) ?? false;
+      final seen = prefs.getBool(_kSeenOnboarding) ?? false;
+      final demoSeeded = prefs.getBool(_kDemoSeeded) ?? false;
 
-    if (!demoSeeded) {
-      final db = ref.read(dbProvider);
+      if (!demoSeeded) {
+        final db = ref.read(dbProvider);
 
-      final catCount = await (db.select(db.categories)).get().then((l) => l.length);
-      final txCount = await (db.select(db.transactions)).get().then((l) => l.length);
+        final catCount = await (db.select(db.categories)).get().then((l) => l.length);
+        final txCount = await (db.select(db.transactions)).get().then((l) => l.length);
 
-      if (catCount == 0 && txCount == 0) {
-        await db.seed();
+        if (catCount == 0 && txCount == 0) {
+          await db.seed();
+        }
+
+        await prefs.setBool(_kDemoSeeded, true);
       }
 
-      await prefs.setBool(_kDemoSeeded, true);
+      if (!mounted) return;
+      setState(() {
+        _seen = seen;
+      });
+    } catch (e, st) {
+      // ✅ ÇÖZÜM 3: Veritabanı çökerse uygulama logoda kalmasın,
+      // Hatayı ekrana yazdırsın ki sorunun tam olarak ne olduğunu görebilelim!
+      debugPrint('AÇILIŞ HATASI: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _errorMsg = e.toString();
+      });
     }
-
-    if (!mounted) return;
-    setState(() {
-      _seen = seen;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Eğer arka planda çökme olduysa bunu bembeyaz bir ekranda göster
+    if (_errorMsg != null) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(
+              "Sistem Hatası:\n$_errorMsg\n\nLütfen ekran görüntüsü alıp geliştiriciye bildirin.",
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_seen == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),

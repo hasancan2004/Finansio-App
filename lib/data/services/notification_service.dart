@@ -59,24 +59,46 @@ class NotificationService {
   static Future<void> init() async {
     if (_initialized) return;
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidInit);
+    // ✅ ÇÖZÜM: İkon bulunamadığında çökmemesi için alternatif isimleri deniyoruz.
+    // Flutter projelerinde en sık kullanılan varsayılan ikon isimleri bunlardır.
+    final iconCandidates = [
+      '@mipmap/ic_launcher',
+      '@mipmap/launcher_icon',
+      '@drawable/launch_background'
+    ];
+    bool isInitOk = false;
 
-    await _plugin.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        final payload = response.payload;
-        if (payload != null && payload.isNotEmpty) {
-          debugPrint('[Notif] Bildirime tıklandı, payload: $payload');
+    for (String icon in iconCandidates) {
+      try {
+        final androidInit = AndroidInitializationSettings(icon);
+        final initSettings = InitializationSettings(android: androidInit);
 
-          if (payload.startsWith('/')) {
-            globalNavigatorKey.currentState?.pushNamed(payload);
-          } else {
-            await OpenFilex.open(payload);
-          }
-        }
-      },
-    );
+        await _plugin.initialize(
+          initSettings,
+          onDidReceiveNotificationResponse: (NotificationResponse response) async {
+            final payload = response.payload;
+            if (payload != null && payload.isNotEmpty) {
+              debugPrint('[Notif] Bildirime tıklandı, payload: $payload');
+
+              if (payload.startsWith('/')) {
+                globalNavigatorKey.currentState?.pushNamed(payload);
+              } else {
+                await OpenFilex.open(payload);
+              }
+            }
+          },
+        );
+        isInitOk = true;
+        debugPrint('[Notif] Bildirim servisi şu ikonla başarıyla başlatıldı: $icon');
+        break; // İlk başarılı denemede döngüden çık
+      } catch (e) {
+        debugPrint('[Notif] İkon denemesi başarısız ($icon): $e');
+      }
+    }
+
+    if (!isInitOk) {
+      debugPrint('[Notif] DİKKAT: Hiçbir ikon çalışmadı, bildirimler gönderilemeyebilir!');
+    }
 
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
@@ -363,7 +385,6 @@ class NotificationService {
     );
   }
 
-  // ✅ DEĞİŞTİRİLDİ: Dönem özeti testi yerine Kategori Değişim Testi eklendi
   static Future<void> debugCategorySpikeNow() async {
     await init();
     await showCategorySpike(
@@ -590,7 +611,7 @@ class NotificationService {
       'Kategori Harcama Değişimi 📈',
       body,
       _categoryDetails(),
-      payload: '/category_spike', // ✅ YENİ: Tıklanınca yeni kategori değişim ekranını açacak
+      payload: '/category_spike',
     );
   }
 }

@@ -123,6 +123,11 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(recurringRules);
       }
     },
+
+    // ✅ YENİ: Veritabanı yükseltmelerinin takılmadan, sağlıklı çalışması için Foreign Key onayı
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
   );
 
   /// İlk açılışta örnek kategoriler (seed)

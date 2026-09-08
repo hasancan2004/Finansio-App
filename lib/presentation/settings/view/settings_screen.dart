@@ -1,5 +1,5 @@
 // lib/presentation/settings/view/settings_screen.dart
-import 'package:flutter/foundation.dart'; // ✅ kDebugMode için eklendi
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,7 +17,6 @@ import '../../reports/viewmodel/reports.dart';
 import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/app_scaffold.dart';
 
-// ✅ recurring ekranı
 import '../../recurring/view/recurring_rules_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -49,20 +48,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _loadNotif();
   }
 
+  // ✅ ÇÖZÜM: Try-Catch ekleyerek bildirim servisi çökse bile
+  // ayarlar ekranının sonsuza kadar yükleme modunda kalmasını engelledik.
   Future<void> _loadNotif() async {
-    await NotificationService.loadSettings();
-    final p = await NotificationService.areNotificationsEnabled();
+    try {
+      await NotificationService.loadSettings();
+      final p = await NotificationService.areNotificationsEnabled();
 
-    if (!mounted) return;
-    setState(() {
-      _dailyEnabled = NotificationService.dailyEnabled;
-      _dailyTime = NotificationService.dailyTime;
-      _budgetEnabled = NotificationService.budgetEnabled;
-      _trendEnabled = NotificationService.trendEnabled;
-      _categoryEnabled = NotificationService.categoryEnabled;
-      _notifPermissionEnabled = p;
-      _loading = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        _dailyEnabled = NotificationService.dailyEnabled;
+        _dailyTime = NotificationService.dailyTime;
+        _budgetEnabled = NotificationService.budgetEnabled;
+        _trendEnabled = NotificationService.trendEnabled;
+        _categoryEnabled = NotificationService.categoryEnabled;
+        _notifPermissionEnabled = p;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint("[Settings] Bildirim ayarları yüklenirken hata oluştu: $e");
+      if (!mounted) return;
+      setState(() {
+        // Hata alınsa dahi loading'i kaldırıp ekranı göster
+        _loading = false;
+      });
+    }
   }
 
   String _fmtTime(TimeOfDay t) {
@@ -84,13 +94,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         end: Alignment.bottomRight,
         colors: isDark
             ? [
-                Color.lerp(const Color(0xFF2A2E36), cs.primaryContainer, 0.08)!,
-                const Color(0xFF1E2228),
-              ]
+          Color.lerp(const Color(0xFF2A2E36), cs.primaryContainer, 0.08)!,
+          const Color(0xFF1E2228),
+        ]
             : [
-                Color.lerp(const Color(0xFFD6E7F2), cs.primaryContainer, 0.38)!,
-                Color.lerp(const Color(0xFFDEECF5), cs.secondaryContainer, 0.32)!,
-              ],
+          Color.lerp(const Color(0xFFD6E7F2), cs.primaryContainer, 0.38)!,
+          Color.lerp(const Color(0xFFDEECF5), cs.secondaryContainer, 0.32)!,
+        ],
       ),
       border: Border.all(
         color: cs.primary.withOpacity(isDark ? 0.16 : 0.20),
