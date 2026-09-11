@@ -738,8 +738,6 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
                               onChanged: (v) async {
                                 if (v == null) return;
 
-                                final aiHadPrediction = _lastPrediction != null;
-
                                 setState(() {
                                   _selectedCat = v;
                                   _userOverrodeCategory = true;
@@ -748,22 +746,12 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
                                   _beforeAiCategory = null;
                                 });
 
+                                // Arka planda basit kelime-kategori eşleştirmesini lokal DB'ye
+                                // kaydetmeye devam eder (işlevsellik bozulmaz) ama
+                                // ekrana "Öğrendim" diye hava atan mesajı basmaz :)
                                 await _learnFromUserChoice(v);
 
                                 if (!mounted) return;
-
-                                if (aiHadPrediction) {
-                                  ScaffoldMessenger.of(context)
-                                    ..clearSnackBars()
-                                    ..showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            "Öğrendim ✅ (bir dahakine daha iyi tahmin edeceğim)"),
-                                        duration: Duration(seconds: 2),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                }
 
                                 _scheduleAnomalyCheck();
                               },

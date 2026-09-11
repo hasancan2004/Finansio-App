@@ -71,7 +71,7 @@ Ayarlar > Danger Zone bölümünden tüm verileri silebilirsiniz. Bu işlem geri
 
 9) İletişim
 Gizlilikle ilgili sorularınız için:
-E-posta: hasancan.dev@gmail.com
+E-posta: hasancan.kula0707@gmail.com
 
 Bu politika gerektiğinde güncellenebilir.
 
@@ -114,7 +114,7 @@ The App is not intended for children under 13 and does not knowingly collect per
 You can delete all data via Settings > Danger Zone. This action is irreversible.
 
 9) Contact
-Email: hasancan.dev@gmail.com
+Email: hasancan.kula0707@gmail.com
 
 This policy may be updated from time to time.
 

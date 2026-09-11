@@ -59,8 +59,6 @@ class NotificationService {
   static Future<void> init() async {
     if (_initialized) return;
 
-    // ✅ ÇÖZÜM: İkon bulunamadığında çökmemesi için alternatif isimleri deniyoruz.
-    // Flutter projelerinde en sık kullanılan varsayılan ikon isimleri bunlardır.
     final iconCandidates = [
       '@mipmap/ic_launcher',
       '@mipmap/launcher_icon',
@@ -90,7 +88,7 @@ class NotificationService {
         );
         isInitOk = true;
         debugPrint('[Notif] Bildirim servisi şu ikonla başarıyla başlatıldı: $icon');
-        break; // İlk başarılı denemede döngüden çık
+        break;
       } catch (e) {
         debugPrint('[Notif] İkon denemesi başarısız ($icon): $e');
       }
@@ -198,7 +196,10 @@ class NotificationService {
 
     final granted = await androidImpl?.requestNotificationsPermission();
     debugPrint('[Notif] requestPermission -> $granted');
-    return granted ?? false;
+
+    // ✅ ÇÖZÜM BURADA: Android 12 ve altı cihazlarda "granted" null döner.
+    // Artık 'null' geldiğinde bunu 'false' değil 'true' (Zaten izinli) kabul ediyoruz!
+    return granted ?? true;
   }
 
   static Future<bool> areNotificationsEnabled() async {
