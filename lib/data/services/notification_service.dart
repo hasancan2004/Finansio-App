@@ -528,13 +528,21 @@ class NotificationService {
         body,
         scheduled,
         _dailyDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-    } catch (e) {
-      debugPrint('[Notif] scheduleDailyReminder ERROR: $e');
+
+      debugPrint(
+        '[Notif] Günlük hatırlatma kuruldu -> ${scheduled.year}-'
+        '${scheduled.month.toString().padLeft(2, '0')}-'
+        '${scheduled.day.toString().padLeft(2, '0')} '
+        '${scheduled.hour.toString().padLeft(2, '0')}:'
+        '${scheduled.minute.toString().padLeft(2, '0')} (tz: ${tz.local.name})',
+      );
+    } catch (e, st) {
+      debugPrint('[Notif] scheduleDailyReminder ERROR: $e\n$st');
     }
   }
 
@@ -579,13 +587,17 @@ class NotificationService {
         scheduledDate,
         _trendDetails(),
         payload: '/weekly_summary',
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
-      debugPrint('[Notif] Haftalık trend bildirimi Pazar 19:00 için kuruldu.');
-    } catch (e) {
-      debugPrint('[Notif] ensureWeeklyTrendScheduled ERROR: $e');
+      debugPrint(
+        '[Notif] Haftalık trend bildirimi kuruldu -> ${scheduledDate.year}-'
+        '${scheduledDate.month.toString().padLeft(2, '0')}-'
+        '${scheduledDate.day.toString().padLeft(2, '0')} 19:00 (tz: ${tz.local.name})',
+      );
+    } catch (e, st) {
+      debugPrint('[Notif] ensureWeeklyTrendScheduled ERROR: $e\n$st');
     }
   }
 
