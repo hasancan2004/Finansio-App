@@ -59,99 +59,104 @@ class NotificationService {
   static Future<void> init() async {
     if (_initialized) return;
 
-    final iconCandidates = [
-      '@mipmap/ic_launcher',
-      '@mipmap/launcher_icon',
-      '@drawable/launch_background'
-    ];
-    bool isInitOk = false;
+    try {
+      final iconCandidates = [
+        '@mipmap/ic_launcher',
+        '@mipmap/launcher_icon',
+        '@drawable/launch_background'
+      ];
+      bool isInitOk = false;
 
-    for (String icon in iconCandidates) {
-      try {
-        final androidInit = AndroidInitializationSettings(icon);
-        final initSettings = InitializationSettings(android: androidInit);
+      for (String icon in iconCandidates) {
+        try {
+          final androidInit = AndroidInitializationSettings(icon);
+          final initSettings = InitializationSettings(android: androidInit);
 
-        await _plugin.initialize(
-          initSettings,
-          onDidReceiveNotificationResponse: (NotificationResponse response) async {
-            final payload = response.payload;
-            if (payload != null && payload.isNotEmpty) {
-              debugPrint('[Notif] Bildirime tıklandı, payload: $payload');
+          await _plugin.initialize(
+            initSettings,
+            onDidReceiveNotificationResponse: (NotificationResponse response) async {
+              final payload = response.payload;
+              if (payload != null && payload.isNotEmpty) {
+                debugPrint('[Notif] Bildirime tıklandı, payload: $payload');
 
-              if (payload.startsWith('/')) {
-                globalNavigatorKey.currentState?.pushNamed(payload);
-              } else {
-                await OpenFilex.open(payload);
+                if (payload.startsWith('/')) {
+                  globalNavigatorKey.currentState?.pushNamed(payload);
+                } else {
+                  await OpenFilex.open(payload);
+                }
               }
-            }
-          },
-        );
-        isInitOk = true;
-        debugPrint('[Notif] Bildirim servisi şu ikonla başarıyla başlatıldı: $icon');
-        break;
-      } catch (e) {
-        debugPrint('[Notif] İkon denemesi başarısız ($icon): $e');
+            },
+          );
+          isInitOk = true;
+          debugPrint('[Notif] Bildirim servisi şu ikonla başarıyla başlatıldı: $icon');
+          break;
+        } catch (e) {
+          debugPrint('[Notif] İkon denemesi başarısız ($icon): $e');
+        }
       }
+
+      if (!isInitOk) {
+        debugPrint('[Notif] DİKKAT: Hiçbir ikon çalışmadı, bildirimler gönderilemeyebilir!');
+      }
+
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelDailyId,
+          'Günlük Hatırlatmalar',
+          description: 'Günlük harcama giriş hatırlatmaları',
+          importance: Importance.defaultImportance,
+        ),
+      );
+
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelBudgetId,
+          'Bütçe Uyarıları',
+          description: 'Limit aşımı ve bütçe uyarıları',
+          importance: Importance.high,
+        ),
+      );
+
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelTrendId,
+          'Harcama Trendleri',
+          description: 'Aylık/Haftalık trend bildirimleri',
+          importance: Importance.defaultImportance,
+        ),
+      );
+
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelCategoryId,
+          'Kategori Değişimleri',
+          description: 'Kategori bazlı artış/azalış uyarıları',
+          importance: Importance.defaultImportance,
+        ),
+      );
+
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelDownloadId,
+          'Dosya İşlemleri',
+          description: 'İndirme ve dışa aktarma bildirimleri',
+          importance: Importance.high,
+        ),
+      );
+
+      tz.initializeTimeZones();
+      await _setupLocalTimezoneSafe();
+      await loadSettings();
+    } catch (e) {
+      debugPrint('[Notif] init ERROR: $e');
+    } finally {
+      // Hata olsa da olmasa da sistemi başlatıldı kabul ediyoruz ki kilitlenmesin
+      _initialized = true;
+      debugPrint('[Notif] init ok. tz=${tz.local.name}');
     }
-
-    if (!isInitOk) {
-      debugPrint('[Notif] DİKKAT: Hiçbir ikon çalışmadı, bildirimler gönderilemeyebilir!');
-    }
-
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-
-    await androidImpl?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _channelDailyId,
-        'Günlük Hatırlatmalar',
-        description: 'Günlük harcama giriş hatırlatmaları',
-        importance: Importance.defaultImportance,
-      ),
-    );
-
-    await androidImpl?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _channelBudgetId,
-        'Bütçe Uyarıları',
-        description: 'Limit aşımı ve bütçe uyarıları',
-        importance: Importance.high,
-      ),
-    );
-
-    await androidImpl?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _channelTrendId,
-        'Harcama Trendleri',
-        description: 'Aylık/Haftalık trend bildirimleri',
-        importance: Importance.defaultImportance,
-      ),
-    );
-
-    await androidImpl?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _channelCategoryId,
-        'Kategori Değişimleri',
-        description: 'Kategori bazlı artış/azalış uyarıları',
-        importance: Importance.defaultImportance,
-      ),
-    );
-
-    await androidImpl?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _channelDownloadId,
-        'Dosya İşlemleri',
-        description: 'İndirme ve dışa aktarma bildirimleri',
-        importance: Importance.high,
-      ),
-    );
-
-    tz.initializeTimeZones();
-    await _setupLocalTimezoneSafe();
-    await loadSettings();
-
-    _initialized = true;
-    debugPrint('[Notif] init ok. tz=${tz.local.name}');
   }
 
   static Future<void> _setupLocalTimezoneSafe() async {
@@ -189,103 +194,140 @@ class NotificationService {
   }
 
   static Future<bool> requestPermission() async {
-    await init();
+    try {
+      await init();
 
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
 
-    final granted = await androidImpl?.requestNotificationsPermission();
-    debugPrint('[Notif] requestPermission -> $granted');
+      final granted = await androidImpl?.requestNotificationsPermission();
+      debugPrint('[Notif] requestPermission -> $granted');
 
-    // ✅ ÇÖZÜM BURADA: Android 12 ve altı cihazlarda "granted" null döner.
-    // Artık 'null' geldiğinde bunu 'false' değil 'true' (Zaten izinli) kabul ediyoruz!
-    return granted ?? true;
+      // ✅ Android 12 ve altı cihazlarda "granted" null döner. 'false' değil 'true' kabul ediyoruz.
+      return granted ?? true;
+    } catch (e) {
+      debugPrint('[Notif] requestPermission ERROR: $e');
+      return true; // Hata verirse UI kilitlenmesin diye izin verilmiş gibi davranıyoruz
+    }
   }
 
   static Future<bool> areNotificationsEnabled() async {
-    await init();
+    try {
+      await init();
 
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
 
-    final enabled = await androidImpl?.areNotificationsEnabled();
-    debugPrint('[Notif] areNotificationsEnabled -> $enabled');
-    return enabled ?? true;
+      final enabled = await androidImpl?.areNotificationsEnabled();
+      debugPrint('[Notif] areNotificationsEnabled -> $enabled');
+      return enabled ?? true;
+    } catch (e) {
+      debugPrint('[Notif] areNotificationsEnabled ERROR: $e');
+      return true; // Şalterlerin bozulmaması için true dönüyoruz
+    }
   }
 
   static Future<void> openAppNotificationSettings() async {
-    await AppSettings.openAppSettings(type: AppSettingsType.notification);
+    try {
+      await AppSettings.openAppSettings(type: AppSettingsType.notification);
+    } catch (e) {
+      debugPrint('[Notif] openAppNotificationSettings ERROR: $e');
+    }
   }
 
   static Future<void> loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    _dailyEnabled = prefs.getBool(_kDailyEnabled) ?? false;
+      _dailyEnabled = prefs.getBool(_kDailyEnabled) ?? false;
 
-    final h = prefs.getInt(_kDailyHour);
-    final m = prefs.getInt(_kDailyMinute);
+      final h = prefs.getInt(_kDailyHour);
+      final m = prefs.getInt(_kDailyMinute);
 
-    _dailyTime = (h != null && m != null)
-        ? TimeOfDay(hour: h, minute: m)
-        : const TimeOfDay(hour: 21, minute: 0);
+      _dailyTime = (h != null && m != null)
+          ? TimeOfDay(hour: h, minute: m)
+          : const TimeOfDay(hour: 21, minute: 0);
 
-    _budgetEnabled = prefs.getBool(_kBudgetEnabled) ?? true;
-    _trendEnabled = prefs.getBool(_kTrendEnabled) ?? true;
-    _categoryEnabled = prefs.getBool(_kCategoryEnabled) ?? true;
+      _budgetEnabled = prefs.getBool(_kBudgetEnabled) ?? true;
+      _trendEnabled = prefs.getBool(_kTrendEnabled) ?? true;
+      _categoryEnabled = prefs.getBool(_kCategoryEnabled) ?? true;
+    } catch (e) {
+      debugPrint('[Notif] loadSettings ERROR: $e');
+    }
   }
 
   static Future<void> setDailyEnabled(bool enabled) async {
-    await init();
+    try {
+      await init();
 
-    _dailyEnabled = enabled;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kDailyEnabled, enabled);
+      _dailyEnabled = enabled;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kDailyEnabled, enabled);
 
-    if (!enabled) {
-      await cancelDailyReminder();
-    } else {
-      await ensureDailyScheduled();
+      if (!enabled) {
+        await cancelDailyReminder();
+      } else {
+        await ensureDailyScheduled();
+      }
+    } catch (e) {
+      debugPrint('[Notif] setDailyEnabled ERROR: $e');
     }
   }
 
   static Future<void> setDailyTime(TimeOfDay time) async {
-    await init();
+    try {
+      await init();
 
-    _dailyTime = time;
+      _dailyTime = time;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kDailyHour, time.hour);
-    await prefs.setInt(_kDailyMinute, time.minute);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_kDailyHour, time.hour);
+      await prefs.setInt(_kDailyMinute, time.minute);
 
-    if (_dailyEnabled) {
-      await ensureDailyScheduled();
+      if (_dailyEnabled) {
+        await ensureDailyScheduled();
+      }
+    } catch (e) {
+      debugPrint('[Notif] setDailyTime ERROR: $e');
     }
   }
 
   static Future<void> setBudgetEnabled(bool enabled) async {
-    await init();
+    try {
+      await init();
 
-    _budgetEnabled = enabled;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kBudgetEnabled, enabled);
+      _budgetEnabled = enabled;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kBudgetEnabled, enabled);
+    } catch (e) {
+      debugPrint('[Notif] setBudgetEnabled ERROR: $e');
+    }
   }
 
   static Future<void> setTrendEnabled(bool enabled) async {
-    await init();
+    try {
+      await init();
 
-    _trendEnabled = enabled;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kTrendEnabled, enabled);
+      _trendEnabled = enabled;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kTrendEnabled, enabled);
 
-    await ensureWeeklyTrendScheduled();
+      await ensureWeeklyTrendScheduled();
+    } catch (e) {
+      debugPrint('[Notif] setTrendEnabled ERROR: $e');
+    }
   }
 
   static Future<void> setCategoryEnabled(bool enabled) async {
-    await init();
+    try {
+      await init();
 
-    _categoryEnabled = enabled;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kCategoryEnabled, enabled);
+      _categoryEnabled = enabled;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kCategoryEnabled, enabled);
+    } catch (e) {
+      debugPrint('[Notif] setCategoryEnabled ERROR: $e');
+    }
   }
 
   static AndroidNotificationDetails _androidDetails({
@@ -352,60 +394,80 @@ class NotificationService {
   );
 
   static Future<void> showDownloadNotification(String filePath) async {
-    await init();
+    try {
+      await init();
 
-    final fileName = filePath.split('/').last;
+      final fileName = filePath.split('/').last;
 
-    await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'İndirme Başarılı ✅',
-      '$fileName cihazına kaydedildi. Açmak için dokun.',
-      _downloadDetails(),
-      payload: filePath,
-    );
+      await _plugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'İndirme Başarılı ✅',
+        '$fileName cihazına kaydedildi. Açmak için dokun.',
+        _downloadDetails(),
+        payload: filePath,
+      );
+    } catch (e) {
+      debugPrint('[Notif] showDownloadNotification ERROR: $e');
+    }
   }
 
   // -------------------------------------------------
   // DEBUG
   // -------------------------------------------------
   static Future<void> debugShowNow() async {
-    await init();
-    await _plugin.show(
-      9999,
-      'Test Bildirimi ✅',
-      'Eğer bunu görüyorsan bildirim sistemi çalışıyor.',
-      _dailyDetails(),
-    );
+    try {
+      await init();
+      await _plugin.show(
+        9999,
+        'Test Bildirimi ✅',
+        'Eğer bunu görüyorsan bildirim sistemi çalışıyor.',
+        _dailyDetails(),
+      );
+    } catch (e) {
+      debugPrint('[Notif] debugShowNow ERROR: $e');
+    }
   }
 
   static Future<void> debugWeeklySummaryNow() async {
-    await init();
-    await showWeeklySummary(
-      income: 12500,
-      expense: -8400,
-    );
+    try {
+      await init();
+      await showWeeklySummary(
+        income: 12500,
+        expense: -8400,
+      );
+    } catch (e) {
+      debugPrint('[Notif] debugWeeklySummaryNow ERROR: $e');
+    }
   }
 
   static Future<void> debugCategorySpikeNow() async {
-    await init();
-    await showCategorySpike(
-      categoryName: 'Yemek',
-      changePercent: 42.5,
-      thisPeriodExpense: 7500,
-      lastPeriodExpense: 5260,
-    );
+    try {
+      await init();
+      await showCategorySpike(
+        categoryName: 'Yemek',
+        changePercent: 42.5,
+        thisPeriodExpense: 7500,
+        lastPeriodExpense: 5260,
+      );
+    } catch (e) {
+      debugPrint('[Notif] debugCategorySpikeNow ERROR: $e');
+    }
   }
 
   static Future<void> debugPendingNotifications() async {
-    await init();
+    try {
+      await init();
 
-    final pending = await _plugin.pendingNotificationRequests();
-    debugPrint('[Notif] pending count = ${pending.length}');
+      final pending = await _plugin.pendingNotificationRequests();
+      debugPrint('[Notif] pending count = ${pending.length}');
 
-    for (final item in pending) {
-      debugPrint(
-        '[Notif] pending -> id=${item.id}, title=${item.title}, body=${item.body}',
-      );
+      for (final item in pending) {
+        debugPrint(
+          '[Notif] pending -> id=${item.id}, title=${item.title}, body=${item.body}',
+        );
+      }
+    } catch (e) {
+      debugPrint('[Notif] debugPendingNotifications ERROR: $e');
     }
   }
 
@@ -413,20 +475,20 @@ class NotificationService {
   // DAILY REMINDER
   // -------------------------------------------------
   static Future<void> ensureDailyScheduled() async {
-    await init();
-    await loadSettings();
-
-    if (!_dailyEnabled) {
-      await cancelDailyReminder();
-      return;
-    }
-
-    final enabled = await areNotificationsEnabled();
-    if (!enabled) return;
-
-    await cancelDailyReminder();
-
     try {
+      await init();
+      await loadSettings();
+
+      if (!_dailyEnabled) {
+        await cancelDailyReminder();
+        return;
+      }
+
+      final enabled = await areNotificationsEnabled();
+      if (!enabled) return;
+
+      await cancelDailyReminder();
+
       await scheduleDailyReminder(
         timeOfDay: _dailyTime,
         title: 'Günün harcamalarını ekledin mi?',
@@ -442,77 +504,89 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
-    await init();
+    try {
+      await init();
 
-    final now = tz.TZDateTime.now(tz.local);
+      final now = tz.TZDateTime.now(tz.local);
 
-    var scheduled = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      timeOfDay.hour,
-      timeOfDay.minute,
-    );
+      var scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        timeOfDay.hour,
+        timeOfDay.minute,
+      );
 
-    if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
+      if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+
+      await _plugin.zonedSchedule(
+        dailyReminderId,
+        title,
+        body,
+        scheduled,
+        _dailyDetails(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      debugPrint('[Notif] scheduleDailyReminder ERROR: $e');
     }
-
-    await _plugin.zonedSchedule(
-      dailyReminderId,
-      title,
-      body,
-      scheduled,
-      _dailyDetails(),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-      UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
   }
 
   static Future<void> cancelDailyReminder() async {
-    await init();
-    await _plugin.cancel(dailyReminderId);
+    try {
+      await init();
+      await _plugin.cancel(dailyReminderId);
+    } catch (e) {
+      debugPrint('[Notif] cancelDailyReminder ERROR: $e');
+    }
   }
 
   // -------------------------------------------------
   // HAFTALIK BİLDİRİM (PAZAR 19:00)
   // -------------------------------------------------
   static Future<void> ensureWeeklyTrendScheduled() async {
-    await init();
-    await loadSettings();
+    try {
+      await init();
+      await loadSettings();
 
-    if (!_trendEnabled) {
+      if (!_trendEnabled) {
+        await _plugin.cancel(weeklyTrendId);
+        return;
+      }
+
+      final enabled = await areNotificationsEnabled();
+      if (!enabled) return;
+
       await _plugin.cancel(weeklyTrendId);
-      return;
+
+      tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+      tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 19, 0);
+
+      while (scheduledDate.weekday != DateTime.sunday || scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+
+      await _plugin.zonedSchedule(
+        weeklyTrendId,
+        'Haftalık Finans Özeti 📊',
+        'Geçen hafta ne kadar harcadın? Cebinde ne kaldı? Özetini görmek için hemen dokun. 👀',
+        scheduledDate,
+        _trendDetails(),
+        payload: '/weekly_summary',
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+      debugPrint('[Notif] Haftalık trend bildirimi Pazar 19:00 için kuruldu.');
+    } catch (e) {
+      debugPrint('[Notif] ensureWeeklyTrendScheduled ERROR: $e');
     }
-
-    final enabled = await areNotificationsEnabled();
-    if (!enabled) return;
-
-    await _plugin.cancel(weeklyTrendId);
-
-    tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 19, 0);
-
-    while (scheduledDate.weekday != DateTime.sunday || scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-    }
-
-    await _plugin.zonedSchedule(
-      weeklyTrendId,
-      'Haftalık Finans Özeti 📊',
-      'Geçen hafta ne kadar harcadın? Cebinde ne kaldı? Özetini görmek için hemen dokun. 👀',
-      scheduledDate,
-      _trendDetails(),
-      payload: '/weekly_summary',
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-    );
-    debugPrint('[Notif] Haftalık trend bildirimi Pazar 19:00 için kuruldu.');
   }
 
   // -------------------------------------------------
@@ -523,38 +597,46 @@ class NotificationService {
     required double spent,
     required double limit,
   }) async {
-    await init();
-    await loadSettings();
+    try {
+      await init();
+      await loadSettings();
 
-    if (!_budgetEnabled) return;
+      if (!_budgetEnabled) return;
 
-    final formatter = NumberFormat("#,##0", "tr_TR");
+      final formatter = NumberFormat("#,##0", "tr_TR");
 
-    await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'Bütçe Limiti Aşıldı 🚨',
-      '${formatter.format(limit)} ₺\'lik $categoryName bütçeni, toplam ${formatter.format(spent)} ₺ harcayarak aştın. 💸',
-      _budgetDetails(),
-      payload: '/budgets',
-    );
+      await _plugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'Bütçe Limiti Aşıldı 🚨',
+        '${formatter.format(limit)} ₺\'lik $categoryName bütçeni, toplam ${formatter.format(spent)} ₺ harcayarak aştın. 💸',
+        _budgetDetails(),
+        payload: '/budgets',
+      );
+    } catch (e) {
+      debugPrint('[Notif] showBudgetExceeded ERROR: $e');
+    }
   }
 
   static Future<void> showBudgetWarning({
     required String categoryName,
     required double percent,
   }) async {
-    await init();
-    await loadSettings();
+    try {
+      await init();
+      await loadSettings();
 
-    if (!_budgetEnabled) return;
+      if (!_budgetEnabled) return;
 
-    await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'Bütçe Uyarısı ⚠️',
-      '$categoryName bütçenin %${percent.toStringAsFixed(0)}\'sine ulaştın. Harcamalarına dikkat etmelisin! 👀',
-      _budgetDetails(),
-      payload: '/budgets',
-    );
+      await _plugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'Bütçe Uyarısı ⚠️',
+        '$categoryName bütçenin %${percent.toStringAsFixed(0)}\'sine ulaştın. Harcamalarına dikkat etmelisin! 👀',
+        _budgetDetails(),
+        payload: '/budgets',
+      );
+    } catch (e) {
+      debugPrint('[Notif] showBudgetWarning ERROR: $e');
+    }
   }
 
   // -------------------------------------------------
@@ -564,26 +646,30 @@ class NotificationService {
     required double income,
     required double expense,
   }) async {
-    await init();
-    await loadSettings();
+    try {
+      await init();
+      await loadSettings();
 
-    if (!_trendEnabled) return;
+      if (!_trendEnabled) return;
 
-    final absExpense = expense.abs();
-    final net = income + expense;
+      final absExpense = expense.abs();
+      final net = income + expense;
 
-    final body = '📊 Haftalık Finans Özeti\n\n'
-        '• Gelir: ${income.toStringAsFixed(0)} ₺\n'
-        '• Gider: ${absExpense.toStringAsFixed(0)} ₺\n'
-        '• Net: ${net.toStringAsFixed(0)} ₺';
+      final body = '📊 Haftalık Finans Özeti\n\n'
+          '• Gelir: ${income.toStringAsFixed(0)} ₺\n'
+          '• Gider: ${absExpense.toStringAsFixed(0)} ₺\n'
+          '• Net: ${net.toStringAsFixed(0)} ₺';
 
-    await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'Haftalık Finans Özeti',
-      body,
-      _trendDetails(),
-      payload: '/weekly_summary',
-    );
+      await _plugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'Haftalık Finans Özeti',
+        body,
+        _trendDetails(),
+        payload: '/weekly_summary',
+      );
+    } catch (e) {
+      debugPrint('[Notif] showWeeklySummary ERROR: $e');
+    }
   }
 
   // -------------------------------------------------
@@ -595,24 +681,28 @@ class NotificationService {
     required double thisPeriodExpense,
     required double lastPeriodExpense,
   }) async {
-    await init();
-    await loadSettings();
+    try {
+      await init();
+      await loadSettings();
 
-    if (!_categoryEnabled) return;
+      if (!_categoryEnabled) return;
 
-    final trendWord = changePercent >= 0
-        ? '%${changePercent.toStringAsFixed(1)} artış'
-        : '%${(-changePercent).toStringAsFixed(1)} azalış';
+      final trendWord = changePercent >= 0
+          ? '%${changePercent.toStringAsFixed(1)} artış'
+          : '%${(-changePercent).toStringAsFixed(1)} azalış';
 
-    final body = '$categoryName kategorisinde $trendWord var.\n'
-        'Geçen ay: ${lastPeriodExpense.toStringAsFixed(0)} ₺ • Bu ay: ${thisPeriodExpense.toStringAsFixed(0)} ₺';
+      final body = '$categoryName kategorisinde $trendWord var.\n'
+          'Geçen ay: ${lastPeriodExpense.toStringAsFixed(0)} ₺ • Bu ay: ${thisPeriodExpense.toStringAsFixed(0)} ₺';
 
-    await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'Kategori Harcama Değişimi 📈',
-      body,
-      _categoryDetails(),
-      payload: '/category_spike',
-    );
+      await _plugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'Kategori Harcama Değişimi 📈',
+        body,
+        _categoryDetails(),
+        payload: '/category_spike',
+      );
+    } catch (e) {
+      debugPrint('[Notif] showCategorySpike ERROR: $e');
+    }
   }
 }
