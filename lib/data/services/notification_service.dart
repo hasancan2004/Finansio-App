@@ -2,6 +2,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -232,6 +233,65 @@ class NotificationService {
       await AppSettings.openAppSettings(type: AppSettingsType.notification);
     } catch (e) {
       debugPrint('[Notif] openAppNotificationSettings ERROR: $e');
+    }
+  }
+
+  /// Android 12+ (API 31+) cihazlarda "Alarmlar ve hatırlatıcılar" iznini kontrol eder.
+  /// Bu izin olmadan exactAllowWhileIdle çalışmaz — release build'de sessizce iptal edilir.
+  static Future<bool> canScheduleExactAlarms() async {
+    try {
+      await init();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final result = await androidImpl?.canScheduleExactNotifications();
+      debugPrint('[Notif] canScheduleExactAlarms -> $result');
+      // null = Android 11 ve altı, exact alarm izni gerekmez → true kabul et
+      return result ?? true;
+    } catch (e) {
+      debugPrint('[Notif] canScheduleExactAlarms ERROR: $e');
+      return true;
+    }
+  }
+
+  /// Kullanıcıyı "Alarmlar ve hatırlatıcılar" sistem ayarları sayfasına yönlendirir.
+  static Future<void> openExactAlarmSettings() async {
+    try {
+      await init();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await androidImpl?.requestExactAlarmsPermission();
+    } catch (e) {
+      debugPrint('[Notif] openExactAlarmSettings ERROR: $e');
+    }
+  }
+
+  // -------------------------------------------------------
+  // PİL OPTİMİZASYONU (Samsung / Xiaomi gibi agresif OEM'ler)
+  // -------------------------------------------------------
+  static const _batteryChannel = MethodChannel('com.hasancankula.finansio/battery');
+
+  /// Uygulama pil optimizasyonundan muaf mı? (true = muaf = iyi)
+  static Future<bool> isBatteryOptimizationIgnored() async {
+    try {
+      final result = await _batteryChannel.invokeMethod<bool>('isIgnoringBatteryOptimizations');
+      debugPrint('[Notif] isBatteryOptimizationIgnored -> $result');
+      return result ?? true;
+    } catch (e) {
+      debugPrint('[Notif] isBatteryOptimizationIgnored ERROR: $e');
+      return true; // Hata olursa banner gösterme
+    }
+  }
+
+  /// Sistem diyaloğunu / pil ayarları sayfasını açar, kullanıcı uygulamayı muaf tutabilir.
+  static Future<void> requestIgnoreBatteryOptimization() async {
+    try {
+      await _batteryChannel.invokeMethod('requestIgnoreBatteryOptimizations');
+    } catch (e) {
+      debugPrint('[Notif] requestIgnoreBatteryOptimization ERROR: $e');
+      // Fallback: genel pil ayarlarını aç
+      try {
+        await AppSettings.openAppSettings(type: AppSettingsType.batteryOptimization);
+      } catch (_) {}
     }
   }
 
@@ -528,7 +588,7 @@ class NotificationService {
         body,
         scheduled,
         _dailyDetails(),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
@@ -574,7 +634,7 @@ class NotificationService {
       await _plugin.cancel(weeklyTrendId);
 
       tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-      tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 19, 0);
+      tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 20, 0);
 
       while (scheduledDate.weekday != DateTime.sunday || scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
@@ -587,14 +647,14 @@ class NotificationService {
         scheduledDate,
         _trendDetails(),
         payload: '/weekly_summary',
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
       debugPrint(
         '[Notif] Haftalık trend bildirimi kuruldu -> ${scheduledDate.year}-'
         '${scheduledDate.month.toString().padLeft(2, '0')}-'
-        '${scheduledDate.day.toString().padLeft(2, '0')} 19:00 (tz: ${tz.local.name})',
+        '${scheduledDate.day.toString().padLeft(2, '0')} 20:00 (tz: ${tz.local.name})',
       );
     } catch (e, st) {
       debugPrint('[Notif] ensureWeeklyTrendScheduled ERROR: $e\n$st');

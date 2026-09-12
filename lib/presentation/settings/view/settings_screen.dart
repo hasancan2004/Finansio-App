@@ -38,6 +38,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _categoryEnabled = true;
 
   bool _notifPermissionEnabled = true;
+  bool _exactAlarmEnabled = true; // Android 12+ "Alarmlar ve hatırlatıcılar" izni
+  bool _batteryOptIgnored = true; // Pil optimizasyonundan muaf mı? (true = muaf = iyi)
 
   // busy
   bool _backupBusy = false;
@@ -54,6 +56,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       await NotificationService.loadSettings();
       final p = await NotificationService.areNotificationsEnabled();
+      final exactOk = await NotificationService.canScheduleExactAlarms();
+      final batteryOk = await NotificationService.isBatteryOptimizationIgnored();
 
       if (!mounted) return;
       setState(() {
@@ -63,6 +67,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _trendEnabled = NotificationService.trendEnabled;
         _categoryEnabled = NotificationService.categoryEnabled;
         _notifPermissionEnabled = p;
+        _exactAlarmEnabled = exactOk;
+        _batteryOptIgnored = batteryOk;
         _loading = false;
       });
     } catch (e) {
@@ -373,7 +379,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   children: [
-                    // ✅ Permission banner
+                    // ✅ Genel bildirim izni banner
                     if (!_notifPermissionEnabled)
                       Container(
                         decoration: BoxDecoration(
@@ -424,6 +430,141 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       icon: const Icon(
                                           Icons.check_circle_outline),
                                       label: const Text("İzin ver"),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // ✅ Android 12+ Exact Alarm (Alarmlar ve hatırlatıcılar) izni banner
+                    if (!_exactAlarmEnabled)
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          color: Colors.orange.withOpacity(0.12),
+                          border: Border.all(
+                              color: Colors.orange.withOpacity(0.35)),
+                        ),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.alarm_off_rounded,
+                                color: Colors.orange),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Kesin alarm izni kapalı",
+                                    style: theme.textTheme.titleSmall
+                                        ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Android 12+ cihazlarda günlük hatırlatmaların tam saatinde gelebilmesi için \"Alarmlar ve hatırlatıcılar\" iznini açman gerekiyor.",
+                                    style: theme.textTheme.bodySmall
+                                        ?.copyWith(
+                                      color: cs.onSurface
+                                          .withOpacity(0.75),
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () async {
+                                        await NotificationService
+                                            .openExactAlarmSettings();
+                                        await _loadNotif();
+                                      },
+                                      icon: const Icon(Icons.alarm_add_rounded),
+                                      label: const Text("İzin ver"),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.orange,
+                                        side: const BorderSide(
+                                            color: Colors.orange),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // ✅ Pil Optimizasyonu banner (Samsung / MIUI için kritik)
+                    if (!_batteryOptIgnored)
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          color: Colors.yellow.shade700.withOpacity(0.10),
+                          border: Border.all(
+                              color: Colors.yellow.shade700.withOpacity(0.40)),
+                        ),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.battery_alert_rounded,
+                                color: Colors.yellow.shade800),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Pil optimizasyonu açık",
+                                    style: theme.textTheme.titleSmall
+                                        ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Samsung ve bazı cihazlar arka planda uygulamayı kapatarak zamanlanmış bildirimleri engelliyor. Finansio'yu pil optimizasyonundan muaf tut.",
+                                    style: theme.textTheme.bodySmall
+                                        ?.copyWith(
+                                      color: cs.onSurface
+                                          .withOpacity(0.75),
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () async {
+                                        await NotificationService
+                                            .requestIgnoreBatteryOptimization();
+                                        await Future.delayed(
+                                            const Duration(seconds: 1));
+                                        await _loadNotif();
+                                      },
+                                      icon: const Icon(
+                                          Icons.battery_charging_full_rounded),
+                                      label: const Text("Muaf tut"),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                        Colors.yellow.shade800,
+                                        side: BorderSide(
+                                            color:
+                                            Colors.yellow.shade700),
+                                      ),
                                     ),
                                   ),
                                 ],
