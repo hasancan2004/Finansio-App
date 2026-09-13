@@ -229,6 +229,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
         return;
       }
+
+      // Pil optimizasyonu açıksa kullanıcıyı yumuşakça uyar
+      final batteryOk = await NotificationService.isBatteryOptimizationIgnored();
+      if (!batteryOk && mounted) {
+        setState(() => _batteryOptIgnored = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'İpucu: Hatırlatmanın tam saatinde gelmesi için aşağıdaki sarı uyarıyı da kapat.',
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     }
 
     await NotificationService.setDailyEnabled(v);

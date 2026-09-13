@@ -588,7 +588,7 @@ class NotificationService {
         body,
         scheduled,
         _dailyDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.alarmClock, // ✅ Doze'dan tam muaf, telefon alarmı gibi çalışır
         uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
@@ -647,7 +647,7 @@ class NotificationService {
         scheduledDate,
         _trendDetails(),
         payload: '/weekly_summary',
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.alarmClock, // ✅ Doze'dan tam muaf
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
