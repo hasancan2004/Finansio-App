@@ -20,10 +20,10 @@ class NotificationService {
 
   static bool _initialized = false;
 
-  // Channel IDs
-  static const String _channelDailyId = 'daily_reminders';
+  // Channel IDs — v2: Importance.high ile yeniden oluşturuldu (Android eski kanalları güncellemiyor)
+  static const String _channelDailyId = 'daily_reminders_v2';
   static const String _channelBudgetId = 'budget_alerts';
-  static const String _channelTrendId = 'trend_alerts';
+  static const String _channelTrendId = 'trend_alerts_v2';
   static const String _channelCategoryId = 'category_alerts';
   static const String _channelDownloadId = 'download_alerts';
 
@@ -474,17 +474,43 @@ class NotificationService {
   // -------------------------------------------------
   // DEBUG
   // -------------------------------------------------
+  /// DEBUG: AnLIK bildirim — sadece notification kanalını test eder (show kullanır)
   static Future<void> debugShowNow() async {
     try {
       await init();
       await _plugin.show(
         9999,
-        'Test Bildirimi ✅',
-        'Eğer bunu görüyorsan bildirim sistemi çalışıyor.',
+        'Anlık Test ✅',
+        'Bildirim kanalı çalışıyor (show kullanıldı).',
         _dailyDetails(),
       );
     } catch (e) {
       debugPrint('[Notif] debugShowNow ERROR: $e');
+    }
+  }
+
+  /// DEBUG: 1 dakika sonra gelen ZAMANLI bildirim — alarmClock + ScheduledNotificationReceiver'ı test eder
+  static Future<void> debugScheduledIn1Min() async {
+    try {
+      await init();
+
+      final now = tz.TZDateTime.now(tz.local);
+      final scheduled = now.add(const Duration(minutes: 1));
+
+      await _plugin.zonedSchedule(
+        9998,
+        'Zamanli Test ⏰',
+        'Bu bildirim 1 dakika sonra geldi — alarmClock çalışıyor!',
+        scheduled,
+        _dailyDetails(),
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('[Notif] DEBUG: 1 dakika sonra zamanli bildirim kuruldu -> ${scheduled.hour}:${scheduled.minute.toString().padLeft(2, '0')}');
+    } catch (e, st) {
+      debugPrint('[Notif] debugScheduledIn1Min ERROR: $e\n$st');
     }
   }
 

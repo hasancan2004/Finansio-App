@@ -742,7 +742,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             await NotificationService.debugShowNow();
                                           },
                                           icon: const Icon(Icons.bug_report_outlined),
-                                          label: const Text("Günlük test"),
+                                          label: const Text("Anlık test"),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            await NotificationService.debugScheduledIn1Min();
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('⏰ 1 dakika sonra zamanli bildirim bekleniyor...'),
+                                                duration: Duration(seconds: 3),
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.timer_outlined),
+                                          label: const Text("1 dk sonra zamanli"),
                                         ),
                                         TextButton.icon(
                                           onPressed: () async {
