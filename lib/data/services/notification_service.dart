@@ -108,7 +108,7 @@ class NotificationService {
           _channelDailyId,
           'Günlük Hatırlatmalar',
           description: 'Günlük harcama giriş hatırlatmaları',
-          importance: Importance.defaultImportance,
+          importance: Importance.high,
         ),
       );
 
@@ -126,7 +126,7 @@ class NotificationService {
           _channelTrendId,
           'Harcama Trendleri',
           description: 'Aylık/Haftalık trend bildirimleri',
-          importance: Importance.defaultImportance,
+          importance: Importance.high,
         ),
       );
 
