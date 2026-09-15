@@ -503,7 +503,7 @@ class NotificationService {
         'Bu bildirim 1 dakika sonra geldi — alarmClock çalışıyor!',
         scheduled,
         _dailyDetails(),
-        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
       );
@@ -554,6 +554,24 @@ class NotificationService {
       }
     } catch (e) {
       debugPrint('[Notif] debugPendingNotifications ERROR: $e');
+    }
+  }
+
+  /// Bekleyen bildirimleri UI'da göstermek için string döner
+  static Future<String> getPendingNotificationsInfo() async {
+    try {
+      await init();
+      final pending = await _plugin.pendingNotificationRequests();
+      if (pending.isEmpty) {
+        return '⚠️ Bekleyen alarm YOK!\nScheduledNotificationReceiver çalışmıyor olabilir (ProGuard sorunu).';
+      }
+      final sb = StringBuffer('✅ ${pending.length} alarm kurulu:\n\n');
+      for (final item in pending) {
+        sb.writeln('• [${item.id}] ${item.title}');
+      }
+      return sb.toString().trim();
+    } catch (e) {
+      return '❌ Hata: $e';
     }
   }
 
@@ -614,7 +632,7 @@ class NotificationService {
         body,
         scheduled,
         _dailyDetails(),
-        androidScheduleMode: AndroidScheduleMode.alarmClock, // ✅ Doze'dan tam muaf, telefon alarmı gibi çalışır
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // ✅ Doze'dan tam muaf, telefon alarmı gibi çalışır
         uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
@@ -673,7 +691,7 @@ class NotificationService {
         scheduledDate,
         _trendDetails(),
         payload: '/weekly_summary',
-        androidScheduleMode: AndroidScheduleMode.alarmClock, // ✅ Doze'dan tam muaf
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // ✅ Doze'dan tam muaf
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );

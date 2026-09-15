@@ -772,6 +772,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           icon: const Icon(Icons.calendar_month_outlined),
                                           label: const Text("Kategori tepe noktası test"),
                                         ),
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            final info = await NotificationService.getPendingNotificationsInfo();
+                                            if (!context.mounted) return;
+                                            showDialog(
+                                              context: context,
+                                              builder: (_) => AlertDialog(
+                                                title: const Text('📋 Bekleyen Alarmlar'),
+                                                content: Text(info),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(context),
+                                                    child: const Text('Tamam'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.list_alt_rounded),
+                                          label: const Text("Bekleyenleri göster"),
+                                        ),
                                       ],
                                     ),
                                   ),
