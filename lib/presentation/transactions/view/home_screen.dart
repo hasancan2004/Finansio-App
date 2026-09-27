@@ -470,39 +470,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           try {
             await ref.read(dbProvider).deleteTransaction(t.id);
 
-            ScaffoldMessenger.of(context)
-              ..clearSnackBars()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "Silindi: ${t.category.name} ${_formatTry(t.amount, isExpense: t.amount < 0)}",
-                  ),
-                  action: SnackBarAction(
-                    label: "Geri al",
-                    onPressed: () async {
-                      await ref.read(dbProvider).addTransaction(
-                        TransactionsCompanion.insert(
-                          amount: t.amount,
-                          categoryId: t.category.id,
-                          note: (t.note == null || t.note!.trim().isEmpty)
-                              ? const Value.absent()
-                              : Value(t.note!),
-                          date: Value(t.date),
-                        ),
-                      );
-                    },
-                  ),
+            // 1. Messenger'ı bir değişkene alıyoruz
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.clearSnackBars();
+
+            // 2. SnackBar'ı gösterirken onu bir 'controller' değişkenine atıyoruz
+            final controller = messenger.showSnackBar(
+              SnackBar(
+                duration: const Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+                content: Text(
+                  "Silindi: ${t.category.name} ${_formatTry(t.amount, isExpense: t.amount < 0)}",
                 ),
-              );
+                action: SnackBarAction(
+                  label: "Geri al",
+                  onPressed: () async {
+                    await ref.read(dbProvider).addTransaction(
+                      TransactionsCompanion.insert(
+                        amount: t.amount,
+                        categoryId: t.category.id,
+                        note: (t.note == null || t.note!.trim().isEmpty)
+                            ? const Value.absent()
+                            : Value(t.note!),
+                        date: Value(t.date),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+
+            // ✅ 3. BÜYÜK HİLE: Android süreyi uzatsa bile biz 3 saniye sonra ZORLA kapatıyoruz!
+            Future.delayed(const Duration(seconds: 3), () {
+              try {
+                controller.close(); // Bildirimi ekrandan sil
+              } catch (_) {} // Eğer kullanıcı zaten başka menüye geçtiyse hata vermemesi için
+            });
+
           } catch (e) {
-            ScaffoldMessenger.of(context)
-              ..clearSnackBars()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text("Silinemedi: $e"),
-                  backgroundColor: cs.error,
-                ),
-              );
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.clearSnackBars();
+
+            final controller = messenger.showSnackBar(
+              SnackBar(
+                duration: const Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+                content: Text("Silinemedi: $e"),
+                backgroundColor: cs.error,
+              ),
+            );
+
+            // Hatada da aynı hileyi uyguluyoruz
+            Future.delayed(const Duration(seconds: 3), () {
+              try {
+                controller.close();
+              } catch (_) {}
+            });
           }
         }
 
