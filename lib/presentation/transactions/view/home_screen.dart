@@ -450,7 +450,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             builder: (ctx) => AlertDialog(
               title: const Text("İşlemi Sil"),
               content: Text(
-                '"${t.category.name}" kategorisindeki ${_formatTry(t.amount.abs())} tutarındaki işlemi silmek istiyor musun?',
+                '"${t.category.name}" kategorisindeki ${_formatTry(t.amount, isExpense: t.amount < 0)} tutarındaki işlemi silmek istiyor musun?',
               ),
               actions: [
                 TextButton(
@@ -475,7 +475,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ..showSnackBar(
                 SnackBar(
                   content: Text(
-                    "Silindi: ${t.category.name} • ${_formatTry(t.amount.abs())}",
+                    "Silindi: ${t.category.name} ${_formatTry(t.amount, isExpense: t.amount < 0)}",
                   ),
                   action: SnackBarAction(
                     label: "Geri al",
@@ -658,7 +658,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    _formatTry(t.amount.abs()),
+                                    _formatTry(t.amount, isExpense: !isIncome), // ✅ isIncome false ise eksi koyar
                                     style: TextStyle(
                                       color: isIncome
                                           ? Colors.green
@@ -756,7 +756,8 @@ class _FilterChips extends StatelessWidget {
     }
 
     return Wrap(
-      spacing: 10,
+      spacing: 14, // ✅ Boşluk 10'dan 14'e çıkarıldı
+      runSpacing: 8,
       children: [
         chip("Tümü", FilterRange.all),
         chip("Bu Ay", FilterRange.thisMonth),
@@ -774,7 +775,7 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    Widget cell(String title, double value, Color color) {
+    Widget cell(String title, double value, Color color, {bool isExpense = false}) {
       return Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -786,11 +787,17 @@ class _SummaryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              _formatTry(value.abs()),
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: color,
+            // ✅ Metin uzun olduğunda alt satıra kaymasını engellemek için FittedBox eklendi
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _formatTry(value, isExpense: isExpense),
+                maxLines: 1,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                ),
               ),
             ),
           ],
@@ -805,9 +812,9 @@ class _SummaryCard extends StatelessWidget {
       children: [
         cell("Gelir", summary.income, Colors.green),
         const SizedBox(width: 12),
-        cell("Gider", summary.expense, expense),
+        cell("Gider", summary.expense, expense, isExpense: true), // ✅ Gider her zaman eksili
         const SizedBox(width: 12),
-        cell("Net", summary.net, summary.net >= 0 ? Colors.green : expense),
+        cell("Net", summary.net, summary.net >= 0 ? Colors.green : expense, isExpense: summary.net < 0), // ✅ Net negatifse eksili
       ],
     );
   }
@@ -847,8 +854,9 @@ Color _hexToColor(String hex) {
 Color _expenseAmountColor(bool isDark) =>
     isDark ? Colors.red.shade400 : Colors.red;
 
-/// ✅ ₺ sağda + işareti yok: "10.000 ₺"
-String _formatTry(double amount) {
+/// ✅ ₺ sağda, giderler için eksi (-) işareti eklendi
+String _formatTry(double amount, {bool isExpense = false}) {
   final f = NumberFormat("#,##0", "tr_TR");
-  return '${f.format(amount)} ₺';
+  final formatted = f.format(amount.abs());
+  return isExpense ? '-$formatted ₺' : '$formatted ₺';
 }
