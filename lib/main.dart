@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:finansio/presentation/reports/view/category_spike_screen.dart';
 import 'package:finansio/presentation/reports/view/weekly_summary_screen.dart';
+import 'package:finansio/presentation/settings/view/settings_screen.dart';
 import 'package:finansio/presentation/settings/viewmodel/theme_provider.dart';
 import 'package:finansio/presentation/budgets/view/budgets_screen.dart';
 import 'package:finansio/presentation/onboarding/view/onboarding_screen.dart';
@@ -81,6 +82,7 @@ class FinansioApp extends ConsumerWidget {
       routes: {
         '/home': (_) => const BottomNavShell(),
         '/budgets': (_) => const BudgetsScreen(),
+        '/settings': (_) => const SettingsScreen(),
         '/reports': (_) => const BottomNavShell(),
         '/weekly_summary': (_) => const WeeklySummaryScreen(),
         '/category_spike': (_) => const CategorySpikeScreen(),
