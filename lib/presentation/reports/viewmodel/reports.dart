@@ -20,27 +20,30 @@ DateTime _monthEndInclusive(DateTime d) =>
   }
 }
 
-// ✅ Reports Summary (DB’den direkt)
+// ✅ Reports Summary (Tetikleyici Eklendi & autoDispose kaldırıldı)
 final reportsSummaryProvider =
-FutureProvider.autoDispose<SummaryTotals>((ref) async {
+FutureProvider<SummaryTotals>((ref) async {
   final db = ref.watch(dbProvider);
+  ref.watch(txStreamProvider); // ✅ GİZLİ TETİKLEYİCİ: İşlem değiştiğinde otomatik yeniler
   final filter = ref.watch(txFilterProvider);
   final r = _rangeFromFilter(filter);
   return db.fetchSummaryTotals(startDate: r.start, endDate: r.end);
 });
 
-// ✅ Kategori pastası (gider)
+// ✅ Kategori pastası (Tetikleyici Eklendi & autoDispose kaldırıldı)
 final categoryPieProvider =
-FutureProvider.autoDispose<List<CategoryTotal>>((ref) async {
+FutureProvider<List<CategoryTotal>>((ref) async {
   final db = ref.watch(dbProvider);
+  ref.watch(txStreamProvider); // ✅ GİZLİ TETİKLEYİCİ: İşlem değiştiğinde otomatik yeniler
   final filter = ref.watch(txFilterProvider);
   final r = _rangeFromFilter(filter);
   return db.sumExpensesByCategory(start: r.start, end: r.end);
 });
 
-// ✅ Aylık trend (Son 6 Ay)
+// ✅ Aylık trend (Tetikleyici Eklendi & autoDispose kaldırıldı)
 final monthlyTrendProvider =
-FutureProvider.autoDispose<List<MonthlyTotals>>((ref) async {
+FutureProvider<List<MonthlyTotals>>((ref) async {
   final db = ref.watch(dbProvider);
+  ref.watch(txStreamProvider); // ✅ GİZLİ TETİKLEYİCİ: İşlem değiştiğinde otomatik yeniler
   return db.monthlyTotals(monthsBack: 6);
 });
