@@ -190,6 +190,7 @@ class ReportsScreen extends ConsumerWidget {
                             title: 'Gelir',
                             value: s.income,
                             color: Colors.green,
+                            isExpense: false,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -198,6 +199,7 @@ class ReportsScreen extends ConsumerWidget {
                             title: 'Gider',
                             value: s.expense,
                             color: Colors.red,
+                            isExpense: true, // ✅ Gider için her zaman eksi
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -206,6 +208,7 @@ class ReportsScreen extends ConsumerWidget {
                             title: 'Net',
                             value: s.net,
                             color: s.net >= 0 ? Colors.green : Colors.red,
+                            isExpense: s.net < 0, // ✅ Net negatifse eksi
                           ),
                         ),
                       ],
@@ -286,7 +289,7 @@ class ReportsScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Aylık Trend (Son 6 Ay)',
+                          'Aylık Trend (Son 2 Ay)',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),
@@ -305,9 +308,9 @@ class ReportsScreen extends ConsumerWidget {
                       data: (list) {
                         final activeList = list.where((m) => m.income > 0 || m.expense.abs() > 0).toList();
 
-                        // Eğer 1 veya daha az ay verisi varsa sıkışma olmasın diye şık bir bilgi kutusu gösterelim
+                        // ✅ Mesaj daha net ve anlaşılır hale getirildi
                         if (activeList.length < 2) {
-                          return const _EmptyBox("Aylık trend grafiği için en az 2 aylık veri gerekiyor.");
+                          return const _EmptyBox("Trend grafiği oluşturabilmek için en az 2 farklı aya ait işlem geçmişiniz olmalıdır.");
                         }
 
                         return Column(
@@ -621,18 +624,19 @@ class _StatTile extends StatelessWidget {
   final String title;
   final double value;
   final Color color;
+  final bool isExpense;
 
   const _StatTile({
     required this.title,
     required this.value,
     required this.color,
+    required this.isExpense,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final currency = NumberFormat.currency(locale: 'tr_TR', symbol: '₺');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -652,11 +656,16 @@ class _StatTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            currency.format(value),
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: color,
+          // ✅ Metnin taşmasını engelleyen FittedBox kalkanı
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _formatTry(value, isExpense: isExpense),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -685,7 +694,6 @@ class _CategoryPieState extends State<_CategoryPie> {
     if (total <= 0) return const _EmptyBox('Gösterilecek veri yok.');
 
     final cs = Theme.of(context).colorScheme;
-    final currency = NumberFormat.currency(locale: 'tr_TR', symbol: '₺');
 
     final sections = List.generate(list.length, (i) {
       final ct = list[i];
@@ -713,7 +721,7 @@ class _CategoryPieState extends State<_CategoryPie> {
             Border.all(color: cs.outlineVariant.withOpacity(0.25)),
           ),
           child: Text(
-            currency.format(ct.total),
+            _formatTry(ct.total, isExpense: true), // ✅ Doğru format
             style: TextStyle(
               color: cs.onInverseSurface,
               fontSize: 11,
@@ -732,9 +740,11 @@ class _CategoryPieState extends State<_CategoryPie> {
 
     final centerTitle =
     hasValidTouched ? list[_touchedIndex!].category.name : "Toplam Gider";
+
+    // ✅ Ortadaki dev toplam gider formatı
     final centerValue = hasValidTouched
-        ? currency.format(list[_touchedIndex!].total)
-        : currency.format(total);
+        ? _formatTry(list[_touchedIndex!].total, isExpense: true)
+        : _formatTry(total, isExpense: true);
 
     return Column(
       children: [
@@ -818,7 +828,7 @@ class _CategoryPieState extends State<_CategoryPie> {
           children: list.take(8).map((ct) {
             return _LegendItem(
               color: _hexToColor(ct.category.colorHex),
-              label: '${ct.category.name} • ${currency.format(ct.total)}',
+              label: '${ct.category.name} • ${_formatTry(ct.total, isExpense: true)}', // ✅ Lejantlar doğru formatta
             );
           }).toList(),
         ),
@@ -887,7 +897,6 @@ class _CategoryCompareSectionState extends State<_CategoryCompareSection> {
 
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final currency = NumberFormat.currency(locale: 'tr_TR', symbol: '₺');
 
     final visible = widget.list.take(widget.list.length.clamp(0, 8)).toList();
     final selectedList =
@@ -1018,8 +1027,9 @@ class _CategoryCompareSectionState extends State<_CategoryCompareSection> {
                     final ct = finalSelected[group.x.toInt()];
                     final percent =
                     (ct.total.abs() / total * 100).toStringAsFixed(0);
+                    // ✅ Tooltip doğru formatta eklendi
                     return BarTooltipItem(
-                      '${ct.category.name}\n${currency.format(ct.total.abs())} • %$percent',
+                      '${ct.category.name}\n${_formatTry(ct.total.abs(), isExpense: true)}\n% $percent',
                       TextStyle(color: cs.onInverseSurface),
                     );
                   },
@@ -1226,4 +1236,11 @@ Color _hexToColor(String hex) {
   final v = hex.replaceAll('#', '');
   final colorInt = int.parse(v, radix: 16) | 0xFF000000;
   return Color(colorInt);
+}
+
+// ✅ ANA EKRANDAKİ FORMATLAYICI FONKSİYONU BURAYA DA EKLENDİ
+String _formatTry(double amount, {bool isExpense = false}) {
+  final f = NumberFormat("#,##0", "tr_TR");
+  final formatted = f.format(amount.abs());
+  return isExpense ? '-$formatted ₺' : '$formatted ₺';
 }
