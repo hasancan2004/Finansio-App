@@ -1,4 +1,4 @@
-// lib/data/app_database.dart
+// lib/data/database/app_database.dart
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -57,53 +57,43 @@ class CategoryOverrides extends Table {
     {token}
   ];
 }
+
 // ✅ Tekrarlayan işlemler (kural tablosu)
 class RecurringRules extends Table {
   IntColumn get id => integer().autoIncrement()();
-
-  // Bu kural bir gider mi gelir mi? (Transactions.amount işaretini buna göre belirleyeceğiz)
   BoolColumn get isIncome => boolean().withDefault(const Constant(false))();
-
-  // Pozitif tutar (biz transaction eklerken giderse -amount yapacağız)
   RealColumn get amount => real()();
-
-  // Kategori
   IntColumn get categoryId => integer().references(Categories, #id)();
-
-  // Not / açıklama
   TextColumn get note => text().nullable()();
-
-  // Frekans: daily / weekly / monthly
   TextColumn get frequency => text()();
-
-  // Her kaç birimde bir? (örn: 1 ayda bir, 2 haftada bir)
   IntColumn get interval => integer().withDefault(const Constant(1))();
-
-  // Weekly için: 1..7 (1=Mon, 7=Sun). Monthly için: 1..31
   IntColumn get dayOfPeriod => integer().nullable()();
-
-  // Başlangıç tarihi (kuralın çalışmaya başladığı tarih)
   DateTimeColumn get startDate => dateTime().withDefault(currentDateAndTime)();
-
-  // Kural aktif mi?
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
-
-  // En son ne zaman “işlem üretildi” / onaylandı (double üretimi engeller)
   DateTimeColumn get lastGeneratedAt => dateTime().nullable()();
-
-  // Oluşturulma
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// ✅ YENİ: Varlık ve Yatırım Portföyü Tablosu
+class Assets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get type => text()(); // Örn: GOLD, USD, EUR, STOCK, CRYPTO
+  TextColumn get name => text()(); // Örn: Gram Altın, Amerikan Doları
+  RealColumn get quantity => real().withDefault(const Constant(0.0))(); // Sahip olunan miktar (örn: 15.5 gram)
+  RealColumn get averagePrice => real().withDefault(const Constant(0.0))(); // Birim başı ortalama maliyet (₺)
+  TextColumn get colorHex => text().withDefault(const Constant('#FFD700'))(); // UI için renk
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 /// ------------------ Database ------------------
 
-@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules])
+@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules, Assets])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_open());
 
-  /// ✅ ŞEMA VERSIYONU 3
+  /// ✅ ŞEMA VERSİYONU 5'E YÜKSELTİLDİ
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -111,20 +101,20 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      // v1 -> v2: budgets
       if (from < 2) {
         await m.createTable(budgets);
       }
-      // v2 -> v3: category_overrides
       if (from < 3) {
         await m.createTable(categoryOverrides);
       }
       if (from < 4) {
         await m.createTable(recurringRules);
       }
+      // ✅ YENİ: Versiyon 5'e geçişte Assets tablosunu oluştur
+      if (from < 5) {
+        await m.createTable(assets);
+      }
     },
-
-    // ✅ YENİ: Veritabanı yükseltmelerinin takılmadan, sağlıklı çalışması için Foreign Key onayı
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
@@ -132,26 +122,18 @@ class AppDatabase extends _$AppDatabase {
 
   /// İlk açılışta örnek kategoriler (seed)
   Future<void> seed() async {
-    final hasAny =
-    await (select(categories).get()).then((rows) => rows.isNotEmpty);
+    final hasAny = await (select(categories).get()).then((rows) => rows.isNotEmpty);
     if (!hasAny) {
       await batch((b) => b.insertAll(categories, [
-        CategoriesCompanion.insert(
-            name: 'Yemek', colorHex: const Value('#FF7043')),
-        CategoriesCompanion.insert(
-            name: 'Ulaşım', colorHex: const Value('#42A5F5')),
-        CategoriesCompanion.insert(
-            name: 'Fatura', colorHex: const Value('#AB47BC')),
-        CategoriesCompanion.insert(
-            name: 'Maaş', colorHex: const Value('#66BB6A')),
+        CategoriesCompanion.insert(name: 'Yemek', colorHex: const Value('#FF7043')),
+        CategoriesCompanion.insert(name: 'Ulaşım', colorHex: const Value('#42A5F5')),
+        CategoriesCompanion.insert(name: 'Fatura', colorHex: const Value('#AB47BC')),
+        CategoriesCompanion.insert(name: 'Maaş', colorHex: const Value('#66BB6A')),
       ]));
     }
   }
 
-  // Sadece temel kategorileri oluşturan fonksiyon (Demo harcamaları eklemez)
   Future<void> seedCategoriesOnly() async {
-    // Eğer daha önce kategoriler silindiyse veya hiç yoksa temel kategorileri ekle
-    // (Mevcut seed mantığındaki kategori ekleme kodlarını buraya koyabilirsin)
     await batch((batch) {
       batch.insertAll(
         categories,
@@ -166,20 +148,16 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-
-  // AppDatabase class içi
   Future<void> clearAllData() async {
     await transaction(() async {
-      // sırayı böyle yapınca FK varsa da sorun çıkmaz
       await customStatement('DELETE FROM category_overrides');
       await customStatement('DELETE FROM recurring_rules');
+      await customStatement('DELETE FROM assets'); // ✅ Varlıkları da temizle
       await customStatement('DELETE FROM budgets');
       await customStatement('DELETE FROM transactions');
-      // kategori genelde sabit kalabilir ama "tam sıfırla" dediğin için siliyorum:
       await customStatement('DELETE FROM categories');
     });
   }
-
 
   // ------------------ KATEGORİ ------------------
 
@@ -216,7 +194,7 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteCategory(int id) =>
       (delete(categories)..where((c) => c.id.equals(id))).go();
 
-  // ------------------ ✅ ÖĞRENME (OVERRIDE) ------------------
+  // ------------------ ÖĞRENME (OVERRIDE) ------------------
 
   Future<void> learnCategoryOverride({
     required String token,
@@ -245,7 +223,6 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  /// Token listesinde en güçlü override kategoriId’sini döndürür
   Future<int?> fetchBestOverrideCategoryId(List<String> tokens) async {
     if (tokens.isEmpty) return null;
 
@@ -285,7 +262,6 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteTransaction(int id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
 
-  /// ✅ Bu ay için gün gün gelir/gider
   Future<({List<double> incomeDaily, List<double> expenseAbsDaily})>
   fetchThisMonthDailyIncomeExpense() async {
     final now = DateTime.now();
@@ -297,7 +273,7 @@ class AppDatabase extends _$AppDatabase {
       ..where((t) => t.date.isSmallerOrEqualValue(end)))
         .get();
 
-    final dayCount = now.day; // bugüne kadar
+    final dayCount = now.day;
     final income = List<double>.filled(dayCount, 0.0);
     final expenseAbs = List<double>.filled(dayCount, 0.0);
 
@@ -316,7 +292,6 @@ class AppDatabase extends _$AppDatabase {
     return (incomeDaily: income, expenseAbsDaily: expenseAbs);
   }
 
-  /// ✅ Son X günde yapılan kategori giderleri (ABS)
   Future<List<double>> fetchRecentExpenseAbsForCategory({
     required int categoryId,
     required DateTime start,
@@ -335,7 +310,6 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((r) => r.amount.abs()).toList();
   }
 
-  /// ✅ Son X günde yapılan tüm giderler (ABS)
   Future<List<double>> fetchRecentExpenseAbsGlobal({
     required DateTime start,
     required DateTime end,
@@ -352,7 +326,6 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((r) => r.amount.abs()).toList();
   }
 
-  /// ✅ Canlı işlem listesi (Home/Filter/Search için)
   Stream<List<Tx>> watchTransactions({
     DateTime? startDate,
     DateTime? endDate,
@@ -416,7 +389,6 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// ✅ Detay ekranı için tek seferlik filtreli liste
   Future<List<TxWithCategory>> filteredTransactions({
     int? categoryId,
     DateTime? start,
@@ -462,7 +434,6 @@ class AppDatabase extends _$AppDatabase {
 
   // ------------------ RAPORLAR ------------------
 
-  /// ✅ Reports summary için en doğru kaynak (income/expense)
   Future<SummaryTotals> fetchSummaryTotals({
     DateTime? startDate,
     DateTime? endDate,
@@ -470,7 +441,6 @@ class AppDatabase extends _$AppDatabase {
   }) async {
     final tx = alias(transactions, 'tx');
 
-    // GELİR
     final qIncome = selectOnly(tx)..addColumns([tx.amount.sum()]);
     qIncome.where(tx.amount.isBiggerThanValue(0));
     if (startDate != null) {
@@ -483,7 +453,6 @@ class AppDatabase extends _$AppDatabase {
     final incomeRow = await qIncome.getSingle();
     final income = incomeRow.read(tx.amount.sum()) ?? 0.0;
 
-    // GİDER (negatif toplam)
     final qExpense = selectOnly(tx)..addColumns([tx.amount.sum()]);
     qExpense.where(tx.amount.isSmallerThanValue(0));
     if (startDate != null) {
@@ -499,7 +468,6 @@ class AppDatabase extends _$AppDatabase {
     return SummaryTotals(income: income, expense: -negativeSum);
   }
 
-  /// ✅ Pasta grafik için giderleri kategoriye göre toplar (pozitif)
   Future<List<CategoryTotal>> sumExpensesByCategory({
     DateTime? start,
     DateTime? end,
@@ -546,7 +514,6 @@ class AppDatabase extends _$AppDatabase {
     }).toList();
   }
 
-  /// ✅ Son N ay için gelir/gider (ay bazında)
   Future<List<MonthlyTotals>> monthlyTotals({int monthsBack = 6}) async {
     final now = DateTime.now();
     final firstMonth = DateTime(now.year, now.month - (monthsBack - 1), 1);
@@ -566,7 +533,7 @@ class AppDatabase extends _$AppDatabase {
       if (r.amount >= 0) {
         rec['inc'] = (rec['inc'] ?? 0.0) + r.amount;
       } else {
-        rec['exp'] = (rec['exp'] ?? 0.0) + r.amount; // negatif birikiyor
+        rec['exp'] = (rec['exp'] ?? 0.0) + r.amount;
       }
     }
 
@@ -625,7 +592,6 @@ class AppDatabase extends _$AppDatabase {
         .go();
   }
 
-  /// Seçilen ay için bütçe durumları
   Stream<List<BudgetStatus>> watchBudgetStatuses({
     required int year,
     required int month,
@@ -688,6 +654,42 @@ class AppDatabase extends _$AppDatabase {
       }).toList();
     });
   }
+
+  // ------------------ ✅ VARLIKLAR (ASSETS) ------------------
+
+  Stream<List<AssetItem>> watchAssets() {
+    return (select(assets)..orderBy([(a) => OrderingTerm.asc(a.name)])).watch().map((rows) {
+      return rows.map((r) => AssetItem(
+        id: r.id,
+        type: r.type,
+        name: r.name,
+        quantity: r.quantity,
+        averagePrice: r.averagePrice,
+        colorHex: r.colorHex,
+        updatedAt: r.updatedAt,
+      )).toList();
+    });
+  }
+
+  Future<int> addAsset(AssetsCompanion data) => into(assets).insert(data);
+
+  Future<int> updateAsset({
+    required int id,
+    double? quantity,
+    double? averagePrice,
+    String? name,
+    DateTime? updatedAt,
+  }) {
+    final comp = AssetsCompanion(
+      quantity: quantity != null ? Value(quantity) : const Value.absent(),
+      averagePrice: averagePrice != null ? Value(averagePrice) : const Value.absent(),
+      name: name != null ? Value(name) : const Value.absent(),
+      updatedAt: updatedAt != null ? Value(updatedAt) : Value(DateTime.now()),
+    );
+    return (update(assets)..where((a) => a.id.equals(id))).write(comp);
+  }
+
+  Future<int> deleteAsset(int id) => (delete(assets)..where((a) => a.id.equals(id))).go();
 }
 
 /// ------------------ DB Açılışı ------------------
@@ -731,22 +733,22 @@ class TxWithCategory {
 }
 
 class SummaryTotals {
-  final double income; // > 0
-  final double expense; // pozitif expense (ABS)
+  final double income;
+  final double expense;
   double get net => income - expense;
   SummaryTotals({required this.income, required this.expense});
 }
 
 class CategoryTotal {
   final Category category;
-  final double total; // gider toplamı (ABS)
+  final double total;
   CategoryTotal({required this.category, required this.total});
 }
 
 class MonthlyTotals {
   final DateTime month;
   final double income;
-  final double expense; // negatif birikiyor
+  final double expense;
   MonthlyTotals({
     required this.month,
     required this.income,
@@ -773,4 +775,25 @@ class BudgetStatus {
   });
 }
 
+/// ✅ YENİ: Varlık Öğesi DTO
+class AssetItem {
+  final int id;
+  final String type;
+  final String name;
+  final double quantity;
+  final double averagePrice;
+  final String colorHex;
+  final DateTime updatedAt;
 
+  double get totalCost => quantity * averagePrice;
+
+  AssetItem({
+    required this.id,
+    required this.type,
+    required this.name,
+    required this.quantity,
+    required this.averagePrice,
+    required this.colorHex,
+    required this.updatedAt,
+  });
+}

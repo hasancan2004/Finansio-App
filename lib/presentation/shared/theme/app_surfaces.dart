@@ -10,14 +10,14 @@ class AppSurfaces {
     if (cs.brightness == Brightness.dark) {
       return Color.lerp(const Color(0xFF262A32), cs.primaryContainer, 0.08)!;
     }
-    // Canvas (#B7CFE0) ile beyazın ortası: buz mavisi, okunaklı ama #FFFFFF değil.
-    return Color.lerp(const Color(0xFFD4E5F1), cs.primaryContainer, 0.42)!;
+    // Açık temada çok daha belirgin, şık bir mavi-buz rengi
+    return Color.lerp(Colors.white, cs.primary, 0.08)!;
   }
 
   static BorderSide cardBorder(ColorScheme cs) {
     final isDark = cs.brightness == Brightness.dark;
     return BorderSide(
-      color: cs.primary.withOpacity(isDark ? 0.12 : 0.22),
+      color: cs.primary.withOpacity(isDark ? 0.12 : 0.08),
       width: 1.15,
     );
   }
@@ -26,10 +26,10 @@ class AppSurfaces {
     if (cs.brightness == Brightness.dark) return const [];
     return [
       BoxShadow(
-        color: cs.primary.withOpacity(0.12),
-        blurRadius: 18,
-        spreadRadius: -8,
-        offset: const Offset(0, 8),
+        color: cs.primary.withOpacity(0.06),
+        blurRadius: 16,
+        spreadRadius: -4,
+        offset: const Offset(0, 6),
       ),
     ];
   }
@@ -52,21 +52,21 @@ class AppSurfaces {
           const Color(0xFF1E2228),
         ]
             : [
-          Color.lerp(const Color(0xFFD6E7F2), cs.primaryContainer, 0.38)!,
-          Color.lerp(const Color(0xFFDEECF5), cs.secondaryContainer, 0.32)!,
+          Color.lerp(Colors.white, cs.primary, 0.12)!,
+          Color.lerp(Colors.white, cs.primary, 0.22)!,
         ],
       ),
       border: Border.all(
-        color: cs.primary.withOpacity(isDark ? 0.16 : 0.20),
+        color: cs.primary.withOpacity(isDark ? 0.16 : 0.15),
       ),
       boxShadow: [
         BoxShadow(
           color: isDark
               ? Colors.black.withOpacity(0.35)
-              : cs.primary.withOpacity(0.12),
-          blurRadius: 18,
-          spreadRadius: -10,
-          offset: const Offset(0, 10),
+              : cs.primary.withOpacity(0.06),
+          blurRadius: 20,
+          spreadRadius: -6,
+          offset: const Offset(0, 8),
         ),
       ],
     );
@@ -87,9 +87,9 @@ class AppSurfaces {
           const Color(0xFF22262C),
         ]
             : [
-          Color.lerp(const Color(0xFFD6E7F2), cs.primaryContainer, 0.25)!,
-          Color.lerp(const Color(0xFFDEECF5), cs.surface, 0.50)!,
-          const Color(0xFFF4F6F9), // Tatlı kırık gri/beyaz
+          Color.lerp(Colors.white, cs.primaryContainer, 0.25)!,
+          Color.lerp(Colors.white, cs.primary, 0.15)!,
+          Color.lerp(Colors.white, cs.primaryContainer, 0.45)!,
         ],
         stops: isDark ? const [0, 0.42, 1] : const [0, 0.40, 1],
       ),

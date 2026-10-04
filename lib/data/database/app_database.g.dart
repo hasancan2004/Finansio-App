@@ -1954,6 +1954,445 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
   }
 }
 
+class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AssetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _averagePriceMeta = const VerificationMeta(
+    'averagePrice',
+  );
+  @override
+  late final GeneratedColumn<double> averagePrice = GeneratedColumn<double>(
+    'average_price',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _colorHexMeta = const VerificationMeta(
+    'colorHex',
+  );
+  @override
+  late final GeneratedColumn<String> colorHex = GeneratedColumn<String>(
+    'color_hex',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('#FFD700'),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    type,
+    name,
+    quantity,
+    averagePrice,
+    colorHex,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'assets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Asset> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    }
+    if (data.containsKey('average_price')) {
+      context.handle(
+        _averagePriceMeta,
+        averagePrice.isAcceptableOrUnknown(
+          data['average_price']!,
+          _averagePriceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('color_hex')) {
+      context.handle(
+        _colorHexMeta,
+        colorHex.isAcceptableOrUnknown(data['color_hex']!, _colorHexMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Asset map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Asset(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quantity'],
+      )!,
+      averagePrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}average_price'],
+      )!,
+      colorHex: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color_hex'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AssetsTable createAlias(String alias) {
+    return $AssetsTable(attachedDatabase, alias);
+  }
+}
+
+class Asset extends DataClass implements Insertable<Asset> {
+  final int id;
+  final String type;
+  final String name;
+  final double quantity;
+  final double averagePrice;
+  final String colorHex;
+  final DateTime updatedAt;
+  const Asset({
+    required this.id,
+    required this.type,
+    required this.name,
+    required this.quantity,
+    required this.averagePrice,
+    required this.colorHex,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['type'] = Variable<String>(type);
+    map['name'] = Variable<String>(name);
+    map['quantity'] = Variable<double>(quantity);
+    map['average_price'] = Variable<double>(averagePrice);
+    map['color_hex'] = Variable<String>(colorHex);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  AssetsCompanion toCompanion(bool nullToAbsent) {
+    return AssetsCompanion(
+      id: Value(id),
+      type: Value(type),
+      name: Value(name),
+      quantity: Value(quantity),
+      averagePrice: Value(averagePrice),
+      colorHex: Value(colorHex),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Asset.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Asset(
+      id: serializer.fromJson<int>(json['id']),
+      type: serializer.fromJson<String>(json['type']),
+      name: serializer.fromJson<String>(json['name']),
+      quantity: serializer.fromJson<double>(json['quantity']),
+      averagePrice: serializer.fromJson<double>(json['averagePrice']),
+      colorHex: serializer.fromJson<String>(json['colorHex']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'type': serializer.toJson<String>(type),
+      'name': serializer.toJson<String>(name),
+      'quantity': serializer.toJson<double>(quantity),
+      'averagePrice': serializer.toJson<double>(averagePrice),
+      'colorHex': serializer.toJson<String>(colorHex),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Asset copyWith({
+    int? id,
+    String? type,
+    String? name,
+    double? quantity,
+    double? averagePrice,
+    String? colorHex,
+    DateTime? updatedAt,
+  }) => Asset(
+    id: id ?? this.id,
+    type: type ?? this.type,
+    name: name ?? this.name,
+    quantity: quantity ?? this.quantity,
+    averagePrice: averagePrice ?? this.averagePrice,
+    colorHex: colorHex ?? this.colorHex,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Asset copyWithCompanion(AssetsCompanion data) {
+    return Asset(
+      id: data.id.present ? data.id.value : this.id,
+      type: data.type.present ? data.type.value : this.type,
+      name: data.name.present ? data.name.value : this.name,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      averagePrice: data.averagePrice.present
+          ? data.averagePrice.value
+          : this.averagePrice,
+      colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Asset(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('name: $name, ')
+          ..write('quantity: $quantity, ')
+          ..write('averagePrice: $averagePrice, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, type, name, quantity, averagePrice, colorHex, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Asset &&
+          other.id == this.id &&
+          other.type == this.type &&
+          other.name == this.name &&
+          other.quantity == this.quantity &&
+          other.averagePrice == this.averagePrice &&
+          other.colorHex == this.colorHex &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AssetsCompanion extends UpdateCompanion<Asset> {
+  final Value<int> id;
+  final Value<String> type;
+  final Value<String> name;
+  final Value<double> quantity;
+  final Value<double> averagePrice;
+  final Value<String> colorHex;
+  final Value<DateTime> updatedAt;
+  const AssetsCompanion({
+    this.id = const Value.absent(),
+    this.type = const Value.absent(),
+    this.name = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.averagePrice = const Value.absent(),
+    this.colorHex = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  AssetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String type,
+    required String name,
+    this.quantity = const Value.absent(),
+    this.averagePrice = const Value.absent(),
+    this.colorHex = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : type = Value(type),
+       name = Value(name);
+  static Insertable<Asset> custom({
+    Expression<int>? id,
+    Expression<String>? type,
+    Expression<String>? name,
+    Expression<double>? quantity,
+    Expression<double>? averagePrice,
+    Expression<String>? colorHex,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (type != null) 'type': type,
+      if (name != null) 'name': name,
+      if (quantity != null) 'quantity': quantity,
+      if (averagePrice != null) 'average_price': averagePrice,
+      if (colorHex != null) 'color_hex': colorHex,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  AssetsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? type,
+    Value<String>? name,
+    Value<double>? quantity,
+    Value<double>? averagePrice,
+    Value<String>? colorHex,
+    Value<DateTime>? updatedAt,
+  }) {
+    return AssetsCompanion(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      name: name ?? this.name,
+      quantity: quantity ?? this.quantity,
+      averagePrice: averagePrice ?? this.averagePrice,
+      colorHex: colorHex ?? this.colorHex,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<double>(quantity.value);
+    }
+    if (averagePrice.present) {
+      map['average_price'] = Variable<double>(averagePrice.value);
+    }
+    if (colorHex.present) {
+      map['color_hex'] = Variable<String>(colorHex.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetsCompanion(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('name: $name, ')
+          ..write('quantity: $quantity, ')
+          ..write('averagePrice: $averagePrice, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1963,6 +2402,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CategoryOverridesTable categoryOverrides =
       $CategoryOverridesTable(this);
   late final $RecurringRulesTable recurringRules = $RecurringRulesTable(this);
+  late final $AssetsTable assets = $AssetsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1973,6 +2413,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     budgets,
     categoryOverrides,
     recurringRules,
+    assets,
   ];
 }
 
@@ -3926,6 +4367,234 @@ typedef $$RecurringRulesTableProcessedTableManager =
       RecurringRule,
       PrefetchHooks Function({bool categoryId})
     >;
+typedef $$AssetsTableCreateCompanionBuilder =
+    AssetsCompanion Function({
+      Value<int> id,
+      required String type,
+      required String name,
+      Value<double> quantity,
+      Value<double> averagePrice,
+      Value<String> colorHex,
+      Value<DateTime> updatedAt,
+    });
+typedef $$AssetsTableUpdateCompanionBuilder =
+    AssetsCompanion Function({
+      Value<int> id,
+      Value<String> type,
+      Value<String> name,
+      Value<double> quantity,
+      Value<double> averagePrice,
+      Value<String> colorHex,
+      Value<DateTime> updatedAt,
+    });
+
+class $$AssetsTableFilterComposer
+    extends Composer<_$AppDatabase, $AssetsTable> {
+  $$AssetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get averagePrice => $composableBuilder(
+    column: $table.averagePrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get colorHex => $composableBuilder(
+    column: $table.colorHex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AssetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AssetsTable> {
+  $$AssetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get averagePrice => $composableBuilder(
+    column: $table.averagePrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get colorHex => $composableBuilder(
+    column: $table.colorHex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AssetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AssetsTable> {
+  $$AssetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<double> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<double> get averagePrice => $composableBuilder(
+    column: $table.averagePrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get colorHex =>
+      $composableBuilder(column: $table.colorHex, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$AssetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AssetsTable,
+          Asset,
+          $$AssetsTableFilterComposer,
+          $$AssetsTableOrderingComposer,
+          $$AssetsTableAnnotationComposer,
+          $$AssetsTableCreateCompanionBuilder,
+          $$AssetsTableUpdateCompanionBuilder,
+          (Asset, BaseReferences<_$AppDatabase, $AssetsTable, Asset>),
+          Asset,
+          PrefetchHooks Function()
+        > {
+  $$AssetsTableTableManager(_$AppDatabase db, $AssetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AssetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AssetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AssetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<double> quantity = const Value.absent(),
+                Value<double> averagePrice = const Value.absent(),
+                Value<String> colorHex = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => AssetsCompanion(
+                id: id,
+                type: type,
+                name: name,
+                quantity: quantity,
+                averagePrice: averagePrice,
+                colorHex: colorHex,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String type,
+                required String name,
+                Value<double> quantity = const Value.absent(),
+                Value<double> averagePrice = const Value.absent(),
+                Value<String> colorHex = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => AssetsCompanion.insert(
+                id: id,
+                type: type,
+                name: name,
+                quantity: quantity,
+                averagePrice: averagePrice,
+                colorHex: colorHex,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AssetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AssetsTable,
+      Asset,
+      $$AssetsTableFilterComposer,
+      $$AssetsTableOrderingComposer,
+      $$AssetsTableAnnotationComposer,
+      $$AssetsTableCreateCompanionBuilder,
+      $$AssetsTableUpdateCompanionBuilder,
+      (Asset, BaseReferences<_$AppDatabase, $AssetsTable, Asset>),
+      Asset,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3940,4 +4609,6 @@ class $AppDatabaseManager {
       $$CategoryOverridesTableTableManager(_db, _db.categoryOverrides);
   $$RecurringRulesTableTableManager get recurringRules =>
       $$RecurringRulesTableTableManager(_db, _db.recurringRules);
+  $$AssetsTableTableManager get assets =>
+      $$AssetsTableTableManager(_db, _db.assets);
 }

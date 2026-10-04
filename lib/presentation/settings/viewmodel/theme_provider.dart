@@ -129,12 +129,12 @@ ThemeData buildLightTheme(Color accent) {
   );
 
   // ✅ Mavi tonlar yerine ferah, modern açık gri ve saf beyaz
-  const canvas = Color(0xFFF4F6F9);
+  const canvas = Color(0xFFE0ECF8);
   const sheet = Colors.white;
   const card = Colors.white;
   const cardRaised = Colors.white;
-  const well = Color(0xFFE9ECEF);
-  const onSurface = Color(0xFF142033);
+  const well = Color(0xFFF1F5F9);
+  const onSurface = Color(0xFF0F172A);
 
   final scheme = seeded.copyWith(
     surface: sheet,
@@ -146,7 +146,7 @@ ThemeData buildLightTheme(Color accent) {
     surfaceContainerHigh: well,
     surfaceContainerHighest: _mix(well, accent, 0.05),
     onSurface: onSurface,
-    onSurfaceVariant: const Color(0xFF4B5C70),
+    onSurfaceVariant: const Color(0xFF334155),
     outline: _mix(const Color(0xFFB0BEC5), accent, 0.10),
     outlineVariant: _mix(const Color(0xFFCFD8DC), accent, 0.10),
     surfaceTint: Colors.transparent, // M3 mavi boyamasını engeller
@@ -210,7 +210,8 @@ ThemeData buildLightTheme(Color accent) {
     chipTheme: ChipThemeData(
       backgroundColor: scheme.surface,
       selectedColor: scheme.primaryContainer,
-      side: BorderSide(color: scheme.primary.withOpacity(0.15)),
+      side: BorderSide(color: scheme.primary.withOpacity(0.35), width: 1.5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       labelStyle: TextStyle(
         color: scheme.primary,
         fontWeight: FontWeight.w800,

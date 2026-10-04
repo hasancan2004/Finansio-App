@@ -1,34 +1,34 @@
 // lib/main.dart
-import 'package:finansio/presentation/reports/view/category_spike_screen.dart';
-import 'package:finansio/presentation/reports/view/weekly_summary_screen.dart';
-import 'package:finansio/presentation/settings/view/settings_screen.dart';
-import 'package:finansio/presentation/settings/viewmodel/theme_provider.dart';
-import 'package:finansio/presentation/budgets/view/budgets_screen.dart';
-import 'package:finansio/presentation/onboarding/view/onboarding_screen.dart';
-import 'package:finansio/presentation/shared/widgets/bottom_nav.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
-import 'package:finansio/data/database/app_database.dart';
-import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:drift/drift.dart' show Value;
+// Veritabanı ve Servisler
+import 'package:finansio/data/database/app_database.dart';
+import 'package:finansio/data/services/notification_service.dart';
+import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 
-import 'data/services/notification_service.dart';
+// Temalar
+import 'package:finansio/presentation/settings/viewmodel/theme_provider.dart';
+
+// ✅ EKLENMESİ GEREKEN: BottomNavShell importu
+import 'package:finansio/presentation/shared/widgets/bottom_nav.dart';
+import 'package:finansio/presentation/reports/view/reports_screen.dart';
+import 'package:finansio/presentation/portfolio/view/portfolio_screen.dart';
+import 'package:finansio/presentation/budgets/view/budgets_screen.dart';
+import 'package:finansio/presentation/settings/view/settings_screen.dart';
+import 'package:finansio/presentation/onboarding/view/onboarding_screen.dart';
+import 'package:finansio/presentation/reports/view/weekly_summary_screen.dart';
+import 'package:finansio/presentation/reports/view/category_spike_screen.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
   final db = AppDatabase();
 
-  // ✅ ÇÖZÜM 1: Arayüz çizimini hiçbir şeyin bekletmemesi (bloklamaması) için
-  // runApp metodunu her şeyden önceye aldık. Uygulama anında renderlanacak.
   runApp(
     ProviderScope(
       overrides: [
@@ -38,8 +38,6 @@ void main() {
     ),
   );
 
-  // ✅ ÇÖZÜM 2: Bildirimleri, uygulama tamamen ayağa kalktıktan 1 saniye sonra
-  // arka planda sessizce başlatıyoruz. Böylece açılışı ASLA donduramaz.
   Future.delayed(const Duration(seconds: 1), () async {
     try {
       debugPrint('[Main] NotificationService başlatılıyor...');
@@ -80,10 +78,11 @@ class FinansioApp extends ConsumerWidget {
       locale: const Locale('tr', 'TR'),
       home: const _Bootstrapper(),
       routes: {
-        '/home': (_) => const BottomNavShell(),
+        '/home': (_) => BottomNavShell(), // ✅ DÜZELTİLDİ: Rota artık Shell'e gidiyor
+        '/portfolio': (_) => const PortfolioScreen(),
+        '/reports': (_) => const ReportsScreen(),
         '/budgets': (_) => const BudgetsScreen(),
         '/settings': (_) => const SettingsScreen(),
-        '/reports': (_) => const BottomNavShell(),
         '/weekly_summary': (_) => const WeeklySummaryScreen(),
         '/category_spike': (_) => const CategorySpikeScreen(),
       },
@@ -100,7 +99,7 @@ class _Bootstrapper extends ConsumerStatefulWidget {
 
 class _BootstrapperState extends ConsumerState<_Bootstrapper> {
   bool? _seen;
-  String? _errorMsg; // Hata olursa ekrana basmak için
+  String? _errorMsg;
 
   static const _kSeenOnboarding = 'seen_onboarding';
   static const _kDemoSeeded = 'demo_seeded_v1';
@@ -114,20 +113,17 @@ class _BootstrapperState extends ConsumerState<_Bootstrapper> {
   Future<void> _loadAndPrepare() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
       final seen = prefs.getBool(_kSeenOnboarding) ?? false;
       final demoSeeded = prefs.getBool(_kDemoSeeded) ?? false;
 
       if (!demoSeeded) {
         final db = ref.read(dbProvider);
-
         final catCount = await (db.select(db.categories)).get().then((l) => l.length);
         final txCount = await (db.select(db.transactions)).get().then((l) => l.length);
 
         if (catCount == 0 && txCount == 0) {
           await db.seed();
         }
-
         await prefs.setBool(_kDemoSeeded, true);
       }
 
@@ -136,8 +132,6 @@ class _BootstrapperState extends ConsumerState<_Bootstrapper> {
         _seen = seen;
       });
     } catch (e, st) {
-      // ✅ ÇÖZÜM 3: Veritabanı çökerse uygulama logoda kalmasın,
-      // Hatayı ekrana yazdırsın ki sorunun tam olarak ne olduğunu görebilelim!
       debugPrint('AÇILIŞ HATASI: $e\n$st');
       if (!mounted) return;
       setState(() {
@@ -148,7 +142,6 @@ class _BootstrapperState extends ConsumerState<_Bootstrapper> {
 
   @override
   Widget build(BuildContext context) {
-    // Eğer arka planda çökme olduysa bunu bembeyaz bir ekranda göster
     if (_errorMsg != null) {
       return Scaffold(
         body: Center(
@@ -170,6 +163,7 @@ class _BootstrapperState extends ConsumerState<_Bootstrapper> {
       );
     }
 
-    return _seen! ? const BottomNavShell() : const OnboardingScreen();
+    // ✅ DÜZELTİLDİ: Onboarding bitince Shell'e yönlendiriyor
+    return _seen! ?  BottomNavShell() : const OnboardingScreen();
   }
 }

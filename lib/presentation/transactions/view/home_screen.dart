@@ -1,6 +1,5 @@
 // lib/presentation/transactions/view/home_screen.dart
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
-
 import 'package:drift/drift.dart' show Value;
 import 'package:finansio/presentation/budgets/viewmodel/budget_providers.dart';
 import 'package:finansio/presentation/transactions/view/add_tx_screen.dart';
@@ -22,7 +21,6 @@ import '../../shared/theme/app_surfaces.dart';
 
 // ✅ Recurring Engine
 import 'package:finansio/domain/engine/recurring_engine.dart';
-
 // ✅ Profil Dashboard Ekranımız
 import '../../reports/view/profile_dashboard_screen.dart';
 
@@ -39,7 +37,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
     // ✅ Home ilk açılışında 1 kere RecurringEngine çalıştır
     Future.microtask(() async {
       if (_recurringRan) return;
@@ -82,10 +79,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    // ✅ Limit/bütçe bannerları sadece "Bu Ay" + date range yokken
     final bool showBudgetBanners = filter == FilterRange.thisMonth && range == null;
 
-    // ✅ Dynamic greeting
     final hour = DateTime.now().hour;
     final greet = hour < 12
         ? "Günaydın 👋"
@@ -144,7 +139,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
 
       final hasExceeded = globalLimit.exceeded;
-
       final String text = hasExceeded
           ? 'Genel limit aşıldı: ${globalLimit.spent.toStringAsFixed(0)} / ${globalLimit.limit.toStringAsFixed(0)} ₺'
           : 'Genel limite yaklaştın: %${(globalLimit.progress * 100).toStringAsFixed(0)}';
@@ -153,9 +147,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final Color bg = hasExceeded
           ? cs.errorContainer.withOpacity(0.45)
           : Colors.orange.withOpacity(0.14);
-
-      final IconData icon =
-      hasExceeded ? Icons.error_outline : Icons.warning_amber_outlined;
+      final IconData icon = hasExceeded ? Icons.error_outline : Icons.warning_amber_outlined;
 
       return alertPill(
         icon: icon,
@@ -171,16 +163,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (list.isEmpty) return const SizedBox.shrink();
 
         final exceededCount = list.where((b) => (b.progress ?? 0) > 1.0).length;
-        final nearCount = list
-            .where((b) => (b.progress ?? 0) > 0.8 && (b.progress ?? 0) <= 1.0)
-            .length;
+        final nearCount = list.where((b) => (b.progress ?? 0) > 0.8 && (b.progress ?? 0) <= 1.0).length;
 
         if (exceededCount == 0 && nearCount == 0) {
           return const SizedBox.shrink();
         }
 
         final hasExceeded = exceededCount > 0;
-
         final text = hasExceeded
             ? '$exceededCount kategoride limit aşıldı'
             : '$nearCount kategoride limite yaklaştın';
@@ -189,9 +178,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final Color bg = hasExceeded
             ? cs.errorContainer.withOpacity(0.45)
             : Colors.orange.withOpacity(0.14);
-
-        final icon =
-        hasExceeded ? Icons.error_outline : Icons.warning_amber_outlined;
+        final icon = hasExceeded ? Icons.error_outline : Icons.warning_amber_outlined;
 
         return Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -207,13 +194,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       loading: () => const SizedBox.shrink(),
       error: (e, st) => const SizedBox.shrink(),
     );
-
-    Future<void> openAddTx() async {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AddTxScreen()),
-      );
-    }
 
     return AppScaffold(
       title: "Finansio",
@@ -259,14 +239,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ],
       surfaceTopSpacing: 130,
       headerHeight: 240,
-      floatingActionButton: FloatingActionButton(
-        onPressed: openAddTx,
-        child: const Icon(Icons.add),
-      ),
+
+      // ✅ YENİ MİMARİDE BUTONLAR BURADA DEĞİL, BOTTOMNAVSHELL'DE YAŞIYOR
+      // YANİ ARTIK BURASI TERTEMİZ!
+
       body: ListView(
         padding: const EdgeInsets.only(bottom: 120),
         children: [
-          // HEADER
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
             child: AppHeader(
@@ -293,8 +272,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-
-          // FILTER
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Align(
@@ -306,8 +283,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const SizedBox(height: 12),
-
-          // ✅ SUMMARY (Ayarlar ekranı gradient tasarımı)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
@@ -318,8 +293,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-
-          // ✅ RANGE (Ayarlar ekranı gradient tasarımı)
           if (range != null) ...[
             const SizedBox(height: 10),
             Padding(
@@ -348,10 +321,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ],
-
           const SizedBox(height: 10),
-
-          // BANNERS (SADECE BU AY)
           if (showBudgetBanners) ...[
             if (globalLimit.enabled && (globalLimit.near || globalLimit.exceeded))
               globalLimitBanner,
@@ -360,8 +330,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ] else ...[
             const SizedBox(height: 10),
           ],
-
-          // Transaction list
           _buildTransactionListEmbedded(context, txs),
         ],
       ),
@@ -372,7 +340,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildSearchButton(BuildContext context) {
     final activeQuery = ref.watch(searchQueryProvider);
-
     return Row(
       children: [
         IconButton(
@@ -469,12 +436,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           try {
             await ref.read(dbProvider).deleteTransaction(t.id);
-
-            // 1. Messenger'ı bir değişkene alıyoruz
             final messenger = ScaffoldMessenger.of(context);
             messenger.clearSnackBars();
-
-            // 2. SnackBar'ı gösterirken onu bir 'controller' değişkenine atıyoruz
             final controller = messenger.showSnackBar(
               SnackBar(
                 duration: const Duration(seconds: 3),
@@ -499,18 +462,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             );
-
-            // ✅ 3. BÜYÜK HİLE: Android süreyi uzatsa bile biz 3 saniye sonra ZORLA kapatıyoruz!
             Future.delayed(const Duration(seconds: 3), () {
-              try {
-                controller.close(); // Bildirimi ekrandan sil
-              } catch (_) {} // Eğer kullanıcı zaten başka menüye geçtiyse hata vermemesi için
+              try { controller.close(); } catch (_) {}
             });
-
           } catch (e) {
             final messenger = ScaffoldMessenger.of(context);
             messenger.clearSnackBars();
-
             final controller = messenger.showSnackBar(
               SnackBar(
                 duration: const Duration(seconds: 3),
@@ -519,19 +476,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 backgroundColor: cs.error,
               ),
             );
-
-            // Hatada da aynı hileyi uyguluyoruz
             Future.delayed(const Duration(seconds: 3), () {
-              try {
-                controller.close();
-              } catch (_) {}
+              try { controller.close(); } catch (_) {}
             });
           }
         }
 
         final rows = <_TxRow>[];
         DateTime? lastDay;
-
         for (final t in items) {
           final dayKey = _dateOnly(t.date.toLocal());
           if (lastDay == null || dayKey != lastDay) {
@@ -548,11 +500,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           itemBuilder: (context, i) {
             final row = rows[i];
-
             if (row.isHeader) {
               final day = row.day!;
               final title = _prettyDayLabel(day, fullFmt);
-
               return Padding(
                 padding: const EdgeInsets.only(top: 10, bottom: 8),
                 child: Row(
@@ -568,7 +518,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Expanded(
                       child: Container(
                         height: 1,
-                        // ✅ Çizgi rengini cs.onSurface tabanlı yaparak tam kontrast sağladık
                         color: cs.onSurface.withOpacity(isDark ? 0.25 : 0.35),
                       ),
                     ),
@@ -610,13 +559,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: [
                         Icon(Icons.delete_outline, color: cs.error),
                         const SizedBox(width: 6),
-                        Text(
-                          "Sil",
-                          style: TextStyle(
-                            color: cs.error,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
+                        Text("Sil", style: TextStyle(color: cs.error, fontWeight: FontWeight.w900)),
                       ],
                     ),
                   ),
@@ -624,51 +567,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     await deleteTx(t);
                     return false;
                   },
-                  // ✅ İŞLEM KARTLARI (Ayarlar Ekranı Gradient Tasarımı ile Değiştirildi)
                   child: Container(
                     decoration: AppSurfaces.cardDecoration(cs),
                     child: Material(
-                      color: Colors.transparent, // Tıklama efektinin(ripple) çalışması için şeffaf zemin
+                      color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(18),
                         onTap: () => goEdit(t),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           child: Row(
                             children: [
                               CircleAvatar(
                                 radius: 22,
-                                backgroundColor:
-                                _hexToColor(t.category.colorHex).withOpacity(.90),
-                                child: Text(
-                                  initial,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
+                                backgroundColor: _hexToColor(t.category.colorHex).withOpacity(.90),
+                                child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      t.category.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 15,
-                                      ),
-                                    ),
+                                    Text(t.category.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      [
-                                        if ((t.note ?? '').isNotEmpty) t.note!,
-                                        timeFmt.format(localDate),
-                                      ].join(' • '),
+                                      [if ((t.note ?? '').isNotEmpty) t.note!, timeFmt.format(localDate)].join(' • '),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: theme.textTheme.bodySmall,
@@ -681,11 +604,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    _formatTry(t.amount, isExpense: !isIncome), // ✅ isIncome false ise eksi koyar
+                                    _formatTry(t.amount, isExpense: !isIncome),
                                     style: TextStyle(
-                                      color: isIncome
-                                          ? Colors.green
-                                          : _expenseAmountColor(isDark),
+                                      color: isIncome ? Colors.green : _expenseAmountColor(isDark),
                                       fontWeight: FontWeight.w900,
                                       fontSize: 15,
                                     ),
@@ -699,11 +620,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         onTap: () => goEdit(t),
                                         child: Padding(
                                           padding: const EdgeInsets.all(6),
-                                          child: Icon(
-                                            Icons.edit_outlined,
-                                            size: 20,
-                                            color: cs.primary,
-                                          ),
+                                          child: Icon(Icons.edit_outlined, size: 20, color: cs.primary),
                                         ),
                                       ),
                                       const SizedBox(width: 6),
@@ -712,11 +629,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         onTap: () => deleteTx(t),
                                         child: Padding(
                                           padding: const EdgeInsets.all(6),
-                                          child: Icon(
-                                            Icons.delete_outline,
-                                            size: 20,
-                                            color: cs.error,
-                                          ),
+                                          child: Icon(Icons.delete_outline, size: 20, color: cs.error),
                                         ),
                                       ),
                                     ],
@@ -747,39 +660,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 class _FilterChips extends StatelessWidget {
   final FilterRange selected;
   final ValueChanged<FilterRange> onSelected;
-
-  const _FilterChips({
-    required this.selected,
-    required this.onSelected,
-  });
+  const _FilterChips({required this.selected, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     Widget chip(String label, FilterRange value) {
       final isSelected = selected == value;
       return ChoiceChip(
         label: Text(
           label,
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            color: isSelected ? cs.onPrimary : cs.primary,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w900, color: isSelected ? cs.onPrimary : cs.primary),
         ),
         selected: isSelected,
         selectedColor: cs.primary.withOpacity(.92),
         backgroundColor: cs.primaryContainer.withOpacity(0.55),
         onSelected: (_) => onSelected(value),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        side: BorderSide(
-          color: isSelected ? cs.primary.withOpacity(0.25) : cs.outlineVariant.withOpacity(0.35),
-        ),
+        side: BorderSide(color: isSelected ? cs.primary.withOpacity(0.25) : cs.outlineVariant.withOpacity(0.35)),
       );
     }
-
     return Wrap(
-      spacing: 14, // ✅ Boşluk 10'dan 14'e çıkarıldı
+      spacing: 14,
       runSpacing: 8,
       children: [
         chip("Tümü", FilterRange.all),
@@ -797,47 +699,35 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     Widget cell(String title, double value, Color color, {bool isExpense = false}) {
       return Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+            Text(title, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w900)),
             const SizedBox(height: 6),
-            // ✅ Metin uzun olduğunda alt satıra kaymasını engellemek için FittedBox eklendi
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
                 _formatTry(value, isExpense: isExpense),
                 maxLines: 1,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: color,
-                ),
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, color: color),
               ),
             ),
           ],
         ),
       );
     }
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final expense = _expenseAmountColor(isDark);
-
     return Row(
       children: [
         cell("Gelir", summary.income, Colors.green),
         const SizedBox(width: 12),
-        cell("Gider", summary.expense, expense, isExpense: true), // ✅ Gider her zaman eksili
+        cell("Gider", summary.expense, expense, isExpense: true),
         const SizedBox(width: 12),
-        cell("Net", summary.net, summary.net >= 0 ? Colors.green : expense, isExpense: summary.net < 0), // ✅ Net negatifse eksili
+        cell("Net", summary.net, summary.net >= 0 ? Colors.green : expense, isExpense: summary.net < 0),
       ],
     );
   }
@@ -846,38 +736,27 @@ class _SummaryCard extends StatelessWidget {
 class _TxRow {
   final DateTime? day;
   final Tx? tx;
-
   bool get isHeader => day != null;
-
   _TxRow._({this.day, this.tx});
-
   factory _TxRow.header(DateTime day) => _TxRow._(day: day);
   factory _TxRow.item(Tx tx) => _TxRow._(tx: tx);
 }
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
 String _prettyDayLabel(DateTime day, DateFormat fullFmt) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final yesterday = today.subtract(const Duration(days: 1));
-
   if (day == today) return "Bugün";
   if (day == yesterday) return "Dün";
-
   return fullFmt.format(day);
 }
-
 Color _hexToColor(String hex) {
   final v = hex.replaceAll('#', '');
   final colorInt = int.parse(v, radix: 16) | 0xFF000000;
   return Color(colorInt);
 }
-
-Color _expenseAmountColor(bool isDark) =>
-    isDark ? Colors.red.shade400 : Colors.red;
-
-/// ✅ ₺ sağda, giderler için eksi (-) işareti eklendi
+Color _expenseAmountColor(bool isDark) => isDark ? Colors.red.shade400 : Colors.red;
 String _formatTry(double amount, {bool isExpense = false}) {
   final f = NumberFormat("#,##0", "tr_TR");
   final formatted = f.format(amount.abs());

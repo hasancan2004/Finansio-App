@@ -118,10 +118,9 @@ class AppScaffold extends StatelessWidget {
                     Color.lerp(canvas, const Color(0xFF2A2E36), 0.35)!,
                   ]
                       : [
-                    // ✅ Mavi/Turkuaz gradient tamamen iptal edildi. Ferah gri.
-                    canvas,
-                    canvas,
-                    const Color(0xFFE9ECEF),
+                    Color.lerp(canvas, cs.primary, 0.03)!,
+                    Color.lerp(canvas, cs.primaryContainer, 0.15)!,
+                    Color.lerp(canvas, cs.primaryContainer, 0.30)!,
                   ],
                 ),
                 borderRadius: BorderRadius.vertical(

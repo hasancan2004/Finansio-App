@@ -11,6 +11,7 @@ import '../../../data/database/app_database.dart';
 import '../../budgets/viewmodel/budget_providers.dart';
 import '../../reports/viewmodel/ai_insights_provider.dart';
 import '../../reports/viewmodel/forecast_providers.dart';
+import '../../shared/widgets/bottom_nav.dart';
 import '../../transactions/viewmodel/tx_providers.dart';
 import '../../reports/viewmodel/reports.dart';
 
@@ -351,6 +352,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: "Ayarlar",
       headerHeight: 220,
       surfaceTopSpacing: 120,
+      actions: [
+        IconButton(
+          tooltip: "Ana Ekrana Dön",
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () {
+            // ✅ Public metodu tetikliyoruz, böylece private değişken hatası biter ve menü kapanmaz
+            bottomNavKey.currentState?.returnToHome();
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
       body: Stack(
         children: [
           Positioned.fill(
@@ -391,7 +403,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                   children: [
                     // ✅ Genel bildirim izni banner
                     if (!_notifPermissionEnabled)

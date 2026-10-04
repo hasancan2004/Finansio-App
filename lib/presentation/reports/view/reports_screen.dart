@@ -21,6 +21,8 @@ import '../../shared/widgets/app_header.dart';
 import 'package:finansio/data/services/pdf_export_service.dart';
 import 'package:finansio/data/services/notification_service.dart';
 
+import '../../shared/widgets/bottom_nav.dart';
+
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
 
@@ -51,8 +53,20 @@ class ReportsScreen extends ConsumerWidget {
       title: "Raporlar",
       surfaceTopSpacing: 130,
       headerHeight: 240,
+      // ✅ SAĞ ÜST KÖŞEYE ANA EKRANA DÖNEN ÇARPI BUTONU EKLENDİ
+      actions: [
+        IconButton(
+          tooltip: "Ana Ekrana Dön",
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () {
+            // ✅ Public metodu tetikliyoruz, böylece private değişken hatası biter ve menü kapanmaz
+            bottomNavKey.currentState?.returnToHome();
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.only(bottom: 120),
         children: [
           // Header
           Padding(
@@ -199,7 +213,7 @@ class ReportsScreen extends ConsumerWidget {
                             title: 'Gider',
                             value: s.expense,
                             color: Colors.red,
-                            isExpense: true, // ✅ Gider için her zaman eksi
+                            isExpense: true,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -208,7 +222,7 @@ class ReportsScreen extends ConsumerWidget {
                             title: 'Net',
                             value: s.net,
                             color: s.net >= 0 ? Colors.green : Colors.red,
-                            isExpense: s.net < 0, // ✅ Net negatifse eksi
+                            isExpense: s.net < 0,
                           ),
                         ),
                       ],
@@ -276,7 +290,7 @@ class ReportsScreen extends ConsumerWidget {
 
           const SizedBox(height: 12),
 
-          // Trend charts (Akıllı Kontrollü)
+          // Trend charts
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Card(
@@ -308,7 +322,6 @@ class ReportsScreen extends ConsumerWidget {
                       data: (list) {
                         final activeList = list.where((m) => m.income > 0 || m.expense.abs() > 0).toList();
 
-                        // ✅ Mesaj daha net ve anlaşılır hale getirildi
                         if (activeList.length < 2) {
                           return const _EmptyBox("Trend grafiği oluşturabilmek için en az 2 farklı aya ait işlem geçmişiniz olmalıdır.");
                         }
@@ -656,7 +669,6 @@ class _StatTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          // ✅ Metnin taşmasını engelleyen FittedBox kalkanı
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -712,16 +724,14 @@ class _CategoryPieState extends State<_CategoryPie> {
         color: _hexToColor(ct.category.colorHex),
         badgeWidget: isTouched
             ? Container(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: cs.inverseSurface,
             borderRadius: BorderRadius.circular(999),
-            border:
-            Border.all(color: cs.outlineVariant.withOpacity(0.25)),
+            border: Border.all(color: cs.outlineVariant.withOpacity(0.25)),
           ),
           child: Text(
-            _formatTry(ct.total, isExpense: true), // ✅ Doğru format
+            _formatTry(ct.total, isExpense: true),
             style: TextStyle(
               color: cs.onInverseSurface,
               fontSize: 11,
@@ -741,7 +751,6 @@ class _CategoryPieState extends State<_CategoryPie> {
     final centerTitle =
     hasValidTouched ? list[_touchedIndex!].category.name : "Toplam Gider";
 
-    // ✅ Ortadaki dev toplam gider formatı
     final centerValue = hasValidTouched
         ? _formatTry(list[_touchedIndex!].total, isExpense: true)
         : _formatTry(total, isExpense: true);
@@ -828,7 +837,7 @@ class _CategoryPieState extends State<_CategoryPie> {
           children: list.take(8).map((ct) {
             return _LegendItem(
               color: _hexToColor(ct.category.colorHex),
-              label: '${ct.category.name} • ${_formatTry(ct.total, isExpense: true)}', // ✅ Lejantlar doğru formatta
+              label: '${ct.category.name} • ${_formatTry(ct.total, isExpense: true)}',
             );
           }).toList(),
         ),
@@ -1027,7 +1036,6 @@ class _CategoryCompareSectionState extends State<_CategoryCompareSection> {
                     final ct = finalSelected[group.x.toInt()];
                     final percent =
                     (ct.total.abs() / total * 100).toStringAsFixed(0);
-                    // ✅ Tooltip doğru formatta eklendi
                     return BarTooltipItem(
                       '${ct.category.name}\n${_formatTry(ct.total.abs(), isExpense: true)}\n% $percent',
                       TextStyle(color: cs.onInverseSurface),
@@ -1043,7 +1051,7 @@ class _CategoryCompareSectionState extends State<_CategoryCompareSection> {
   }
 }
 
-// ---------------- MONTHLY LINES (AKILLI KONTROLLÜ) ----------------
+// ---------------- MONTHLY LINES ----------------
 class _MonthlyLines extends StatelessWidget {
   final List<MonthlyTotals> list;
   const _MonthlyLines({required this.list});
@@ -1238,7 +1246,6 @@ Color _hexToColor(String hex) {
   return Color(colorInt);
 }
 
-// ✅ ANA EKRANDAKİ FORMATLAYICI FONKSİYONU BURAYA DA EKLENDİ
 String _formatTry(double amount, {bool isExpense = false}) {
   final f = NumberFormat("#,##0", "tr_TR");
   final formatted = f.format(amount.abs());

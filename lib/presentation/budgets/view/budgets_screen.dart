@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/database/app_database.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
+import '../../shared/widgets/bottom_nav.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/theme/app_surfaces.dart';
 
@@ -45,6 +46,17 @@ class BudgetsScreen extends ConsumerWidget {
       title: "Bütçeler",
       headerHeight: 240,
       surfaceTopSpacing: 130,
+      actions: [
+        IconButton(
+          tooltip: "Ana Ekrana Dön",
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () {
+            // ✅ Public metodu tetikliyoruz, böylece private değişken hatası biter ve menü kapanmaz
+            bottomNavKey.currentState?.returnToHome();
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
       body: Stack(
         children: [
           // ✅ Hafif tint overlay
@@ -124,7 +136,7 @@ class BudgetsScreen extends ConsumerWidget {
                         list.where((e) => (e.progress ?? 0) > 1).toList();
 
                         return ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                           children: [
                             // ✅ Üst uyarı (varsa)
                             if (exceeded.isNotEmpty) ...[
