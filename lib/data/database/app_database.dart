@@ -39,17 +39,11 @@ class Budgets extends Table {
   ];
 }
 
-/// ✅ Kullanıcı düzeltince öğrenme (token -> kategori)
+/// Kullanıcı düzeltince öğrenme (token -> kategori)
 class CategoryOverrides extends Table {
   IntColumn get id => integer().autoIncrement()();
-
-  /// normalize edilmiş token
   TextColumn get token => text()();
-
-  /// bu token görünce hangi kategori önerilsin
   IntColumn get categoryId => integer().references(Categories, #id)();
-
-  /// kaç kere bu eşleşme seçildi
   IntColumn get count => integer().withDefault(const Constant(1))();
 
   @override
@@ -58,7 +52,7 @@ class CategoryOverrides extends Table {
   ];
 }
 
-// ✅ Tekrarlayan işlemler (kural tablosu)
+// Tekrarlayan işlemler (kural tablosu)
 class RecurringRules extends Table {
   IntColumn get id => integer().autoIncrement()();
   BoolColumn get isIncome => boolean().withDefault(const Constant(false))();
@@ -74,38 +68,48 @@ class RecurringRules extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-/// ✅ YENİ: Varlık ve Yatırım Portföyü Tablosu
+/// Varlık ve Yatırım Portföyü Tablosu
 class Assets extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get type => text()(); // Örn: GOLD, USD, EUR, STOCK, CRYPTO
-  TextColumn get name => text()(); // Örn: Gram Altın, Amerikan Doları
-  RealColumn get quantity => real().withDefault(const Constant(0.0))(); // Sahip olunan miktar (örn: 15.5 gram)
-  RealColumn get averagePrice => real().withDefault(const Constant(0.0))(); // Birim başı ortalama maliyet (₺)
-  TextColumn get colorHex => text().withDefault(const Constant('#FFD700'))(); // UI için renk
+  TextColumn get type => text()();
+  TextColumn get name => text()();
+  RealColumn get quantity => real().withDefault(const Constant(0.0))();
+  RealColumn get averagePrice => real().withDefault(const Constant(0.0))();
+  TextColumn get colorHex => text().withDefault(const Constant('#FFD700'))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-/// ✅ YENİ: Birikim Hedefleri Tablosu (Kumbara)
+/// Birikim Hedefleri Tablosu (Kumbara)
 class SavingGoals extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get title => text().withLength(min: 1, max: 50)(); // "Tatil", "Yeni Araba"
-  RealColumn get targetAmount => real()(); // Hedeflenen tutar
-  RealColumn get currentAmount => real().withDefault(const Constant(0.0))(); // Şu anki birikim
-  DateTimeColumn get targetDate => dateTime().nullable()(); // Bitiş tarihi
-  TextColumn get colorHex => text().withDefault(const Constant('#3B82F6'))(); // Kart rengi
-  TextColumn get iconName => text().withDefault(const Constant('savings'))(); // İkon
+  TextColumn get title => text().withLength(min: 1, max: 50)();
+  RealColumn get targetAmount => real()();
+  RealColumn get currentAmount => real().withDefault(const Constant(0.0))();
+  DateTimeColumn get targetDate => dateTime().nullable()();
+  TextColumn get colorHex => text().withDefault(const Constant('#3B82F6'))();
+  TextColumn get iconName => text().withDefault(const Constant('savings'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// ✅ Borç & Alacak (Debt Management) Tablosu
+class Debts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get personName => text().withLength(min: 1, max: 50)(); // Kime/Kimden
+  RealColumn get amount => real()(); // Borç miktarı
+  BoolColumn get isOwedToMe => boolean()(); // true = Alacağım var, false = Borcum var
+  BoolColumn get isSettled => boolean().withDefault(const Constant(false))(); // Ödendi mi?
+  DateTimeColumn get dueDate => dateTime().nullable()(); // Son ödeme tarihi
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 /// ------------------ Database ------------------
 
-@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules, Assets, SavingGoals])
+@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules, Assets, SavingGoals, Debts])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_open());
 
-  /// ✅ ŞEMA VERSİYONU 6'YA YÜKSELTİLDİ
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -113,21 +117,12 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      if (from < 2) {
-        await m.createTable(budgets);
-      }
-      if (from < 3) {
-        await m.createTable(categoryOverrides);
-      }
-      if (from < 4) {
-        await m.createTable(recurringRules);
-      }
-      if (from < 5) {
-        await m.createTable(assets);
-      }
-      if (from < 6) {
-        await m.createTable(savingGoals);
-      }
+      if (from < 2) await m.createTable(budgets);
+      if (from < 3) await m.createTable(categoryOverrides);
+      if (from < 4) await m.createTable(recurringRules);
+      if (from < 5) await m.createTable(assets);
+      if (from < 6) await m.createTable(savingGoals);
+      if (from < 7) await m.createTable(debts);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -147,6 +142,7 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  // ✅ EKSİK OLAN FONKSİYON GERİ GELDİ
   Future<void> seedCategoriesOnly() async {
     await batch((batch) {
       batch.insertAll(
@@ -166,8 +162,9 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await customStatement('DELETE FROM category_overrides');
       await customStatement('DELETE FROM recurring_rules');
-      await customStatement('DELETE FROM saving_goals'); // ✅ Hedefleri temizle
-      await customStatement('DELETE FROM assets'); // ✅ Varlıkları da temizle
+      await customStatement('DELETE FROM debts');
+      await customStatement('DELETE FROM saving_goals');
+      await customStatement('DELETE FROM assets');
       await customStatement('DELETE FROM budgets');
       await customStatement('DELETE FROM transactions');
       await customStatement('DELETE FROM categories');
@@ -519,10 +516,11 @@ class AppDatabase extends _$AppDatabase {
     ).get();
 
     return rows.map((r) {
+      // ✅ SARI UYARILAR GİDERİLDİ (Ünlemler kaldırıldı)
       final cat = Category(
-        id: r.read<int>('c_id')!,
-        name: r.read<String>('c_name')!,
-        colorHex: r.read<String>('c_color')!,
+        id: r.read<int>('c_id'),
+        name: r.read<String>('c_name'),
+        colorHex: r.read<String>('c_color'),
       );
       final total = r.read<double?>('total_abs') ?? 0.0;
       return CategoryTotal(category: cat, total: total);
@@ -531,7 +529,6 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<MonthlyTotals>> monthlyTotals({int monthsBack = 6}) async {
     final now = DateTime.now();
-    // Kırık operatörleri (-) onardım
     final firstMonth = DateTime(now.year, now.month - (monthsBack - 1), 1);
 
     final tx = alias(transactions, 'tx');
@@ -555,7 +552,6 @@ class AppDatabase extends _$AppDatabase {
 
     final out = <MonthlyTotals>[];
     for (int i = 0; i < monthsBack; i++) {
-      // Kırık operatörleri (-, +) onardım
       final m = DateTime(now.year, now.month - (monthsBack - 1) + i, 1);
       final key =
           '${m.year.toString().padLeft(4, '0')}-${m.month.toString().padLeft(2, '0')}';
@@ -647,10 +643,11 @@ class AppDatabase extends _$AppDatabase {
 
     return q.watch().map((rows) {
       return rows.map((r) {
+        // ✅ SARI UYARILAR GİDERİLDİ
         final cat = Category(
-          id: r.read<int>('c_id')!,
-          name: r.read<String>('c_name')!,
-          colorHex: r.read<String>('c_color')!,
+          id: r.read<int>('c_id'),
+          name: r.read<String>('c_name'),
+          colorHex: r.read<String>('c_color'),
         );
         final budget = r.read<double?>('b_amount');
         final spent = r.read<double?>('spent_abs') ?? 0.0;
@@ -672,7 +669,7 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  // ------------------ ✅ VARLIKLAR (ASSETS) ------------------
+  // ------------------ VARLIKLAR (ASSETS) ------------------
 
   Stream<List<AssetItem>> watchAssets() {
     return (select(assets)..orderBy([(a) => OrderingTerm.asc(a.name)])).watch().map((rows) {
@@ -708,7 +705,7 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteAsset(int id) => (delete(assets)..where((a) => a.id.equals(id))).go();
 
-  // ------------------ ✅ BİRİKİM HEDEFLERİ (SAVING GOALS) ------------------
+  // ------------------ BİRİKİM HEDEFLERİ (SAVING GOALS) ------------------
 
   Stream<List<SavingGoalItem>> watchSavingGoals() {
     return (select(savingGoals)..orderBy([(g) => OrderingTerm.asc(g.createdAt)])).watch().map((rows) {
@@ -747,7 +744,6 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteSavingGoal(int id) => (delete(savingGoals)..where((g) => g.id.equals(id))).go();
 
-  // Kumbaraya para ekleme veya çıkarma fonksiyonu
   Future<void> addMoneyToGoal(int id, double amountToAdd) async {
     final goal = await (select(savingGoals)..where((g) => g.id.equals(id))).getSingleOrNull();
     if (goal != null) {
@@ -757,6 +753,90 @@ class AppDatabase extends _$AppDatabase {
       );
     }
   }
+
+  // ------------------ ✅ BORÇ VE ALACAKLAR (DEBTS) ------------------
+
+  Stream<List<DebtItem>> watchDebts() {
+    return (select(debts)..orderBy([(d) => OrderingTerm.desc(d.createdAt)])).watch().map((rows) {
+      return rows.map((r) => DebtItem(
+        id: r.id,
+        personName: r.personName,
+        amount: r.amount,
+        isOwedToMe: r.isOwedToMe,
+        isSettled: r.isSettled,
+        dueDate: r.dueDate,
+        createdAt: r.createdAt,
+      )).toList();
+    });
+  }
+
+  Future<void> addDebtWithTransaction({
+    required String personName,
+    required double amount,
+    required bool isOwedToMe,
+    DateTime? dueDate,
+  }) async {
+    return transaction(() async {
+      await into(debts).insert(DebtsCompanion.insert(
+        personName: personName,
+        amount: amount,
+        isOwedToMe: isOwedToMe,
+        dueDate: dueDate != null ? Value(dueDate) : const Value.absent(),
+      ));
+
+      final cats = await select(categories).get();
+      Category? debtCategory;
+      try {
+        debtCategory = cats.firstWhere((c) => c.name.toLowerCase() == 'borç / alacak');
+      } catch (_) {
+        final catId = await addCategory(name: 'Borç / Alacak', colorHex: '#EF4444');
+        debtCategory = Category(id: catId, name: 'Borç / Alacak', colorHex: '#EF4444');
+      }
+
+      final transactionAmount = isOwedToMe ? -amount : amount;
+      final transactionNote = isOwedToMe ? '$personName kişisine borç verildi' : '$personName kişisinden borç alındı';
+
+      await addTransaction(TransactionsCompanion.insert(
+        amount: transactionAmount,
+        categoryId: debtCategory.id,
+        note: Value(transactionNote),
+        date: Value(DateTime.now()),
+      ));
+    });
+  }
+
+  Future<void> settleDebtWithTransaction(int id) async {
+    return transaction(() async {
+      final debt = await (select(debts)..where((d) => d.id.equals(id))).getSingleOrNull();
+      if (debt == null || debt.isSettled) return;
+
+      await (update(debts)..where((d) => d.id.equals(id))).write(
+        const DebtsCompanion(isSettled: Value(true)),
+      );
+
+      final cats = await select(categories).get();
+      Category? debtCategory;
+      try {
+        debtCategory = cats.firstWhere((c) => c.name.toLowerCase() == 'borç / alacak');
+      } catch (_) {
+        final catId = await addCategory(name: 'Borç / Alacak', colorHex: '#EF4444');
+        debtCategory = Category(id: catId, name: 'Borç / Alacak', colorHex: '#EF4444');
+      }
+
+      // ✅ KIRMIZI HATA DÜZELTİLDİ: debt.personName olarak güncellendi.
+      final transactionAmount = debt.isOwedToMe ? debt.amount : -debt.amount;
+      final transactionNote = debt.isOwedToMe ? '${debt.personName} borcunu ödedi' : '${debt.personName} borcum ödendi';
+
+      await addTransaction(TransactionsCompanion.insert(
+        amount: transactionAmount,
+        categoryId: debtCategory.id,
+        note: Value(transactionNote),
+        date: Value(DateTime.now()),
+      ));
+    });
+  }
+
+  Future<void> deleteDebt(int id) => (delete(debts)..where((d) => d.id.equals(id))).go();
 }
 
 /// ------------------ DB Açılışı ------------------
@@ -802,7 +882,7 @@ class TxWithCategory {
 class SummaryTotals {
   final double income;
   final double expense;
-  double get net => income - expense; // Kırık operatörü (-) onardım
+  double get net => income - expense;
   SummaryTotals({required this.income, required this.expense});
 }
 
@@ -851,7 +931,7 @@ class AssetItem {
   final String colorHex;
   final DateTime updatedAt;
 
-  double get totalCost => quantity * averagePrice; // Kırık operatörü (*) onardım
+  double get totalCost => quantity * averagePrice;
 
   AssetItem({
     required this.id,
@@ -864,7 +944,6 @@ class AssetItem {
   });
 }
 
-/// ✅ YENİ: Birikim Hedefi DTO (UI katmanına gönderilecek temiz obje)
 class SavingGoalItem {
   final int id;
   final String title;
@@ -875,10 +954,7 @@ class SavingGoalItem {
   final String iconName;
   final DateTime createdAt;
 
-  // İlerleme yüzdesi (UI'da progress bar için 0.0 - 1.0 arası)
   double get progress => targetAmount > 0 ? (currentAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
-
-  // Kalan tutar
   double get remainingAmount => (targetAmount - currentAmount).clamp(0.0, double.infinity);
 
   SavingGoalItem({
@@ -889,6 +965,26 @@ class SavingGoalItem {
     this.targetDate,
     required this.colorHex,
     required this.iconName,
+    required this.createdAt,
+  });
+}
+
+class DebtItem {
+  final int id;
+  final String personName;
+  final double amount;
+  final bool isOwedToMe;
+  final bool isSettled;
+  final DateTime? dueDate;
+  final DateTime createdAt;
+
+  DebtItem({
+    required this.id,
+    required this.personName,
+    required this.amount,
+    required this.isOwedToMe,
+    required this.isSettled,
+    this.dueDate,
     required this.createdAt,
   });
 }

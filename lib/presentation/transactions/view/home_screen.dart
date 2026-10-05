@@ -25,6 +25,8 @@ import 'package:finansio/domain/engine/recurring_engine.dart';
 import '../../reports/view/profile_dashboard_screen.dart';
 // ✅ YENİ: Kumbaralarım Ekranı importu
 import '../../saving_goals/view/saving_goals_screen.dart';
+// ✅ YENİ: Borçlar Ekranı importu
+import '../../debts/view/debts_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -143,7 +145,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final hasExceeded = globalLimit.exceeded;
       final String text = hasExceeded
           ? 'Genel limit aşıldı: ${globalLimit.spent.toStringAsFixed(0)} / ${globalLimit.limit.toStringAsFixed(0)} ₺'
-          : 'Genel limite yaklaştın: %${(globalLimit.progress * 100).toStringAsFixed(0)}'; // Matematiksel operatör onarıldı
+          : 'Genel limite yaklaştın: %${(globalLimit.progress * 100).toStringAsFixed(0)}';
 
       final Color fg = hasExceeded ? cs.error : Colors.orange.shade800;
       final Color bg = hasExceeded
@@ -209,7 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final initial = ref.read(globalDateRangeProvider);
             final picked = await showDateRangePicker(
               context: context,
-              firstDate: DateTime(now.year - 5), // Matematiksel operatör onarıldı
+              firstDate: DateTime(now.year - 5),
               lastDate: DateTime(now.year + 5),
               initialDateRange: initial ??
                   DateTimeRange(
@@ -293,68 +295,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
-          // ✅ KUMBARALARIM KARTI (Özet kartının hemen altına eklendi)
+          // ✅ YENİ: YAN YANA HIZLI İŞLEMLER (Kumbara & Borç Defteri)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SavingGoalsScreen()),
-                );
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Ink(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: cs.outlineVariant.withOpacity(0.5),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // 1. KART: KUMBARALARIM
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SavingGoalsScreen()));
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Ink(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                       decoration: BoxDecoration(
-                        color: cs.primary,
-                        shape: BoxShape.circle,
+                        color: cs.surfaceContainerHighest.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
                       ),
-                      child: Icon(
-                        Icons.savings_outlined,
-                        color: cs.onPrimary,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Kumbaralarım',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.2), shape: BoxShape.circle),
+                            child: const Icon(Icons.savings_outlined, color: Colors.blue, size: 24),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Birikim hedeflerine ulaş!',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
+                          const SizedBox(height: 12),
+                          Text('Kumbaralarım', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          Text('Birikim yap', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant, fontSize: 11)),
                         ],
                       ),
                     ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(width: 12), // İki kart arası boşluk
+
+                // 2. KART: BORÇ DEFTERİ
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtsScreen()));
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Ink(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHighest.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), shape: BoxShape.circle),
+                            child: const Icon(Icons.handshake_outlined, color: Colors.orange, size: 24),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('Borç Defteri', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          Text('Alacak ve verecek', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -602,7 +613,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               builder: (_, v, child) => Opacity(
                 opacity: v,
                 child: Transform.translate(
-                  offset: Offset(0, 10 * (1 - v)), // Matematiksel operatör onarıldı
+                  offset: Offset(0, 10 * (1 - v)),
                   child: child,
                 ),
               ),
