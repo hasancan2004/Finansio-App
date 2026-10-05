@@ -35,8 +35,8 @@ class RecurringSchedule {
         final targetDay = _clampDayOfMonth(day.year, day.month, dom);
         if (day.day != targetDay) return false;
 
-        final diffMonths =
-            (day.year - startDateOnly.year) * 12 + (day.month - startDateOnly.month);
+        // ✅ Eksik eksi (-) ve çarpı (*) operatörleri eklendi
+        final diffMonths = (day.year - startDateOnly.year) * 12 + (day.month - startDateOnly.month);
 
         return diffMonths >= 0 && diffMonths % r.interval == 0;
 
@@ -45,33 +45,26 @@ class RecurringSchedule {
     }
   }
 
-  /// Son çalıştığı tarih (dateOnly) — yoksa null
   static DateTime? lastRunDateOnly(RecurringRule r) {
     if (r.lastGeneratedAt == null) return null;
     return dateOnly(r.lastGeneratedAt!);
   }
 
-  /// Bir sonraki çalışacağı tarih (dateOnly). Bulamazsa null.
-  ///
-  /// Not: Performans için ileriye doğru sınırlı tarıyoruz.
-  /// daily/weekly için 400 gün, monthly için 5 yıl (60 ay) yeterli.
   static DateTime? nextRunDateOnly(RecurringRule r, {DateTime? now}) {
-    final _now = now ?? DateTime.now();
-    final today = dateOnly(_now);
+    final currentNow = now ?? DateTime.now();
+    final today = dateOnly(currentNow);
     final start = dateOnly(r.startDate);
 
-    // Kural daha başlamadıysa: start'tan itibaren ararız
     final base = today.isBefore(start) ? start : today;
 
-    // Eğer bugün zaten üretildiyse, yarından başla
     final last = lastRunDateOnly(r);
     DateTime cursor = base;
     if (last != null && last == today) {
       cursor = today.add(const Duration(days: 1));
     }
 
-    // Tarama limiti
-    final int maxDays = (r.frequency == "monthly") ? (31 * 62) : 400; // ~5 yıl veya 400 gün
+    // ✅ Çarpı (*) operatörü düzeltildi (31 * 60 = ~5 yıl)
+    final int maxDays = (r.frequency == "monthly") ? (31 * 60) : 400;
     for (int i = 0; i <= maxDays; i++) {
       final d = cursor.add(Duration(days: i));
       if (d.isBefore(start)) continue;

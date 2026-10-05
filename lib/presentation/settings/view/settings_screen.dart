@@ -18,7 +18,7 @@ import '../../reports/viewmodel/reports.dart';
 import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/app_scaffold.dart';
 
-import '../../recurring/view/recurring_rules_screen.dart';
+import '../../subscriptions/view/subscriptions_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -281,7 +281,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _openRecurring() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RecurringRulesScreen()),
+      MaterialPageRoute(builder: (_) => const SubscriptionsScreen()),
     );
   }
 
@@ -600,7 +600,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
 
-                    // ✅ TEKRARLAYAN İŞLEMLER
+                    // ✅ ABONELIKLER VE SABIT GIDERLER
                     _card(
                       theme,
                       Column(
@@ -608,22 +608,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           _sectionHeader(
                             theme: theme,
-                            icon: Icons.repeat_rounded,
-                            title: "Tekrarlayan İşlemler",
+                            icon: Icons.subscriptions_outlined,
+                            title: "Abonelik ve Sabit Giderler",
                             subtitle:
-                            "Kira / abonelik / maaş gibi kurallar",
+                            "Aylık üyelik, fatura ve ödemeler",
                           ),
                           const SizedBox(height: 12),
                           ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.tune_rounded),
+                            leading: const Icon(Icons.manage_accounts_outlined),
                             title: const Text(
-                              "Kuralları yönet",
+                              "Abonelikleri yönet",
                               style:
                               TextStyle(fontWeight: FontWeight.w800),
                             ),
                             subtitle: Text(
-                              "Aylık kira, haftalık harçlık, yıllık abonelik…",
+                              "Netflix, Spotify, spor salonu, kira...",
                               style:
                               _subtleSubtitle(theme, enabled: true),
                             ),
