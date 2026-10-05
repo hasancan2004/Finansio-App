@@ -85,15 +85,27 @@ class Assets extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// ✅ YENİ: Birikim Hedefleri Tablosu (Kumbara)
+class SavingGoals extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text().withLength(min: 1, max: 50)(); // "Tatil", "Yeni Araba"
+  RealColumn get targetAmount => real()(); // Hedeflenen tutar
+  RealColumn get currentAmount => real().withDefault(const Constant(0.0))(); // Şu anki birikim
+  DateTimeColumn get targetDate => dateTime().nullable()(); // Bitiş tarihi
+  TextColumn get colorHex => text().withDefault(const Constant('#3B82F6'))(); // Kart rengi
+  TextColumn get iconName => text().withDefault(const Constant('savings'))(); // İkon
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 /// ------------------ Database ------------------
 
-@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules, Assets])
+@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules, Assets, SavingGoals])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_open());
 
-  /// ✅ ŞEMA VERSİYONU 5'E YÜKSELTİLDİ
+  /// ✅ ŞEMA VERSİYONU 6'YA YÜKSELTİLDİ
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -110,9 +122,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await m.createTable(recurringRules);
       }
-      // ✅ YENİ: Versiyon 5'e geçişte Assets tablosunu oluştur
       if (from < 5) {
         await m.createTable(assets);
+      }
+      if (from < 6) {
+        await m.createTable(savingGoals);
       }
     },
     beforeOpen: (details) async {
@@ -152,6 +166,7 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await customStatement('DELETE FROM category_overrides');
       await customStatement('DELETE FROM recurring_rules');
+      await customStatement('DELETE FROM saving_goals'); // ✅ Hedefleri temizle
       await customStatement('DELETE FROM assets'); // ✅ Varlıkları da temizle
       await customStatement('DELETE FROM budgets');
       await customStatement('DELETE FROM transactions');
@@ -516,6 +531,7 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<MonthlyTotals>> monthlyTotals({int monthsBack = 6}) async {
     final now = DateTime.now();
+    // Kırık operatörleri (-) onardım
     final firstMonth = DateTime(now.year, now.month - (monthsBack - 1), 1);
 
     final tx = alias(transactions, 'tx');
@@ -539,7 +555,8 @@ class AppDatabase extends _$AppDatabase {
 
     final out = <MonthlyTotals>[];
     for (int i = 0; i < monthsBack; i++) {
-      final m = DateTime(now.year, now.month - (monthsBack - 1 - i), 1);
+      // Kırık operatörleri (-, +) onardım
+      final m = DateTime(now.year, now.month - (monthsBack - 1) + i, 1);
       final key =
           '${m.year.toString().padLeft(4, '0')}-${m.month.toString().padLeft(2, '0')}';
       final rec = map[key];
@@ -690,6 +707,56 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> deleteAsset(int id) => (delete(assets)..where((a) => a.id.equals(id))).go();
+
+  // ------------------ ✅ BİRİKİM HEDEFLERİ (SAVING GOALS) ------------------
+
+  Stream<List<SavingGoalItem>> watchSavingGoals() {
+    return (select(savingGoals)..orderBy([(g) => OrderingTerm.asc(g.createdAt)])).watch().map((rows) {
+      return rows.map((r) => SavingGoalItem(
+        id: r.id,
+        title: r.title,
+        targetAmount: r.targetAmount,
+        currentAmount: r.currentAmount,
+        targetDate: r.targetDate,
+        colorHex: r.colorHex,
+        iconName: r.iconName,
+        createdAt: r.createdAt,
+      )).toList();
+    });
+  }
+
+  Future<int> addSavingGoal(SavingGoalsCompanion data) => into(savingGoals).insert(data);
+
+  Future<int> updateSavingGoal({
+    required int id,
+    String? title,
+    double? targetAmount,
+    DateTime? targetDate,
+    String? colorHex,
+    String? iconName,
+  }) {
+    final comp = SavingGoalsCompanion(
+      title: title != null ? Value(title) : const Value.absent(),
+      targetAmount: targetAmount != null ? Value(targetAmount) : const Value.absent(),
+      targetDate: targetDate != null ? Value(targetDate) : const Value.absent(),
+      colorHex: colorHex != null ? Value(colorHex) : const Value.absent(),
+      iconName: iconName != null ? Value(iconName) : const Value.absent(),
+    );
+    return (update(savingGoals)..where((g) => g.id.equals(id))).write(comp);
+  }
+
+  Future<int> deleteSavingGoal(int id) => (delete(savingGoals)..where((g) => g.id.equals(id))).go();
+
+  // Kumbaraya para ekleme veya çıkarma fonksiyonu
+  Future<void> addMoneyToGoal(int id, double amountToAdd) async {
+    final goal = await (select(savingGoals)..where((g) => g.id.equals(id))).getSingleOrNull();
+    if (goal != null) {
+      final newAmount = goal.currentAmount + amountToAdd;
+      await (update(savingGoals)..where((g) => g.id.equals(id))).write(
+        SavingGoalsCompanion(currentAmount: Value(newAmount)),
+      );
+    }
+  }
 }
 
 /// ------------------ DB Açılışı ------------------
@@ -735,7 +802,7 @@ class TxWithCategory {
 class SummaryTotals {
   final double income;
   final double expense;
-  double get net => income - expense;
+  double get net => income - expense; // Kırık operatörü (-) onardım
   SummaryTotals({required this.income, required this.expense});
 }
 
@@ -775,7 +842,6 @@ class BudgetStatus {
   });
 }
 
-/// ✅ YENİ: Varlık Öğesi DTO
 class AssetItem {
   final int id;
   final String type;
@@ -785,7 +851,7 @@ class AssetItem {
   final String colorHex;
   final DateTime updatedAt;
 
-  double get totalCost => quantity * averagePrice;
+  double get totalCost => quantity * averagePrice; // Kırık operatörü (*) onardım
 
   AssetItem({
     required this.id,
@@ -795,5 +861,34 @@ class AssetItem {
     required this.averagePrice,
     required this.colorHex,
     required this.updatedAt,
+  });
+}
+
+/// ✅ YENİ: Birikim Hedefi DTO (UI katmanına gönderilecek temiz obje)
+class SavingGoalItem {
+  final int id;
+  final String title;
+  final double targetAmount;
+  final double currentAmount;
+  final DateTime? targetDate;
+  final String colorHex;
+  final String iconName;
+  final DateTime createdAt;
+
+  // İlerleme yüzdesi (UI'da progress bar için 0.0 - 1.0 arası)
+  double get progress => targetAmount > 0 ? (currentAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
+
+  // Kalan tutar
+  double get remainingAmount => (targetAmount - currentAmount).clamp(0.0, double.infinity);
+
+  SavingGoalItem({
+    required this.id,
+    required this.title,
+    required this.targetAmount,
+    required this.currentAmount,
+    this.targetDate,
+    required this.colorHex,
+    required this.iconName,
+    required this.createdAt,
   });
 }

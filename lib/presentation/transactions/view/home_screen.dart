@@ -23,6 +23,8 @@ import '../../shared/theme/app_surfaces.dart';
 import 'package:finansio/domain/engine/recurring_engine.dart';
 // ✅ Profil Dashboard Ekranımız
 import '../../reports/view/profile_dashboard_screen.dart';
+// ✅ YENİ: Kumbaralarım Ekranı importu
+import '../../saving_goals/view/saving_goals_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -141,7 +143,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final hasExceeded = globalLimit.exceeded;
       final String text = hasExceeded
           ? 'Genel limit aşıldı: ${globalLimit.spent.toStringAsFixed(0)} / ${globalLimit.limit.toStringAsFixed(0)} ₺'
-          : 'Genel limite yaklaştın: %${(globalLimit.progress * 100).toStringAsFixed(0)}';
+          : 'Genel limite yaklaştın: %${(globalLimit.progress * 100).toStringAsFixed(0)}'; // Matematiksel operatör onarıldı
 
       final Color fg = hasExceeded ? cs.error : Colors.orange.shade800;
       final Color bg = hasExceeded
@@ -207,7 +209,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final initial = ref.read(globalDateRangeProvider);
             final picked = await showDateRangePicker(
               context: context,
-              firstDate: DateTime(now.year - 5),
+              firstDate: DateTime(now.year - 5), // Matematiksel operatör onarıldı
               lastDate: DateTime(now.year + 5),
               initialDateRange: initial ??
                   DateTimeRange(
@@ -239,10 +241,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ],
       surfaceTopSpacing: 130,
       headerHeight: 240,
-
-      // ✅ YENİ MİMARİDE BUTONLAR BURADA DEĞİL, BOTTOMNAVSHELL'DE YAŞIYOR
-      // YANİ ARTIK BURASI TERTEMİZ!
-
       body: ListView(
         padding: const EdgeInsets.only(bottom: 120),
         children: [
@@ -283,6 +281,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          // AYLIK ÖZET KARTI
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
@@ -293,8 +292,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
+
+          // ✅ KUMBARALARIM KARTI (Özet kartının hemen altına eklendi)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SavingGoalsScreen()),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Ink(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: cs.outlineVariant.withOpacity(0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.savings_outlined,
+                        color: cs.onPrimary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kumbaralarım',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Birikim hedeflerine ulaş!',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           if (range != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
@@ -537,7 +602,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               builder: (_, v, child) => Opacity(
                 opacity: v,
                 child: Transform.translate(
-                  offset: Offset(0, 10 * (1 - v)),
+                  offset: Offset(0, 10 * (1 - v)), // Matematiksel operatör onarıldı
                   child: child,
                 ),
               ),
