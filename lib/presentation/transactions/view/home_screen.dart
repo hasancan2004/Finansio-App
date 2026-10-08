@@ -27,6 +27,8 @@ import '../../reports/view/profile_dashboard_screen.dart';
 import '../../saving_goals/view/saving_goals_screen.dart';
 // ✅ YENİ: Borçlar Ekranı importu
 import '../../debts/view/debts_screen.dart';
+// ✅ YENİ: Hesaplar Ekranı importu
+import '../../accounts/view/accounts_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -369,6 +371,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
+          // ✅ YENİ: HESAPLAR & KREDİ KARTLARI
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AccountsScreen()),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Ink(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          color: Colors.teal.withOpacity(0.2),
+                          shape: BoxShape.circle),
+                      child: const Icon(Icons.account_balance_wallet_outlined,
+                          color: Colors.teal, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Hesaplarım & Kartlar',
+                              style: theme.textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                              'Nakit, banka, kredi kartı ve hesaplar arası transfer',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           if (range != null) ...[
             const SizedBox(height: 4),
             Padding(
@@ -532,6 +584,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ? const Value.absent()
                             : Value(t.note!),
                         date: Value(t.date),
+                        accountId: t.accountId != null
+                            ? Value(t.accountId)
+                            : const Value.absent(),
                       ),
                     );
                   },

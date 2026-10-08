@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import '../../../data/database/app_database.dart';
 import '../../transactions/viewmodel/tx_providers.dart'; // dbProvider nerede tanımlıysa orayı import et
+import '../../../data/services/notification_service.dart';
+import '../../../data/services/reminder_scheduler.dart';
 
 // Sadece gider (isIncome = false) olan tekrarlayan işlemleri (Abonelikleri) çeker
 final subscriptionsStreamProvider = StreamProvider.autoDispose<List<RecurringRule>>((ref) {
@@ -26,10 +28,18 @@ class SubscriptionsController {
     await (_db.update(_db.recurringRules)..where((r) => r.id.equals(id))).write(
       RecurringRulesCompanion(isActive: Value(!currentStatus)),
     );
+
+    final nowActive = !currentStatus;
+    if (nowActive) {
+      await ReminderScheduler.scheduleSubscriptions(_db);
+    } else {
+      await NotificationService.cancelSubscriptionReminder(id);
+    }
   }
 
   Future<void> deleteSubscription(int id) async {
     await (_db.delete(_db.recurringRules)..where((r) => r.id.equals(id))).go();
+    await NotificationService.cancelSubscriptionReminder(id);
   }
 
   // ✅ YENİ: Abonelik Ekleme Fonksiyonu
@@ -62,5 +72,8 @@ class SubscriptionsController {
         isActive: const Value(true),
       ),
     );
+
+    // 3. Yenileme hatırlatmalarını güncelle
+    await ReminderScheduler.scheduleSubscriptions(_db);
   }
 }

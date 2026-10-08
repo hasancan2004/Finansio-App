@@ -26,10 +26,16 @@ class NotificationService {
   static const String _channelTrendId = 'trend_alerts_v2';
   static const String _channelCategoryId = 'category_alerts';
   static const String _channelDownloadId = 'download_alerts';
+  static const String _channelDebtId = 'debt_reminders';
+  static const String _channelSubscriptionId = 'subscription_reminders';
 
   // Fixed IDs
   static const int dailyReminderId = 1001;
   static const int weeklyTrendId = 1002;
+
+  // Vade/yenileme bildirimleri için sabit taban ID'ler (her kayıt için + id)
+  static const int debtReminderBaseId = 20000;
+  static const int subscriptionReminderBaseId = 30000;
 
   // Pref keys
   static const String _kDailyEnabled = 'notif_daily_enabled';
@@ -144,6 +150,24 @@ class NotificationService {
           _channelDownloadId,
           'Dosya İşlemleri',
           description: 'İndirme ve dışa aktarma bildirimleri',
+          importance: Importance.high,
+        ),
+      );
+
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelDebtId,
+          'Borç / Vade Hatırlatmaları',
+          description: 'Vadesi yaklaşan borç ve alacak hatırlatmaları',
+          importance: Importance.high,
+        ),
+      );
+
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelSubscriptionId,
+          'Abonelik Yenilemeleri',
+          description: 'Yenilenmek üzere olan abonelik bildirimleri',
           importance: Importance.high,
         ),
       );
@@ -448,6 +472,26 @@ class NotificationService {
       channelId: _channelDownloadId,
       channelName: 'Dosya İşlemleri',
       channelDesc: 'İndirme ve dışa aktarma bildirimleri',
+      importance: Importance.high,
+      priority: Priority.high,
+    ),
+  );
+
+  static NotificationDetails _debtDetails() => NotificationDetails(
+    android: _androidDetails(
+      channelId: _channelDebtId,
+      channelName: 'Borç / Vade Hatırlatmaları',
+      channelDesc: 'Vadesi yaklaşan borç ve alacak hatırlatmaları',
+      importance: Importance.high,
+      priority: Priority.high,
+    ),
+  );
+
+  static NotificationDetails _subscriptionDetails() => NotificationDetails(
+    android: _androidDetails(
+      channelId: _channelSubscriptionId,
+      channelName: 'Abonelik Yenilemeleri',
+      channelDesc: 'Yenilenmek üzere olan abonelik bildirimleri',
       importance: Importance.high,
       priority: Priority.high,
     ),
@@ -821,4 +865,126 @@ class NotificationService {
       debugPrint('[Notif] showCategorySpike ERROR: $e');
     }
   }
+
+  // -------------------------------------------------
+  // BORÇ / VADE HATIRLATMASI
+  // -------------------------------------------------
+
+  static Future<void> scheduleDebtReminder({
+    required int debtId,
+    required String personName,
+    required double amount,
+    required bool isOwedToMe,
+    required DateTime dueDate,
+  }) async {
+    try {
+      await init();
+
+      final id = debtReminderBaseId + debtId;
+      await _plugin.cancel(id);
+
+      final when = _pickFutureReminderTime(dueDate);
+      if (when == null) return;
+
+      final fmt = NumberFormat('#,##0', 'tr_TR');
+      final title = isOwedToMe
+          ? 'Alacak Tahsilatı Yaklaşıyor 💰'
+          : 'Borç Ödemesi Yaklaşıyor ⏰';
+      final body = isOwedToMe
+          ? '$personName kişisinden ${fmt.format(amount)} ₺ alacağının vadesi yaklaşıyor.'
+          : '$personName kişisine olan ${fmt.format(amount)} ₺ borcunun son ödeme günü yaklaşıyor.';
+
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        when,
+        _debtDetails(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('[Notif] Borç hatırlatması kuruldu -> id=$id, tarih=${when.year}-${when.month}-${when.day}');
+    } catch (e, st) {
+      debugPrint('[Notif] scheduleDebtReminder ERROR: $e\n$st');
+    }
+  }
+
+  static Future<void> cancelDebtReminder(int debtId) async {
+    try {
+      await init();
+      await _plugin.cancel(debtReminderBaseId + debtId);
+    } catch (e) {
+      debugPrint('[Notif] cancelDebtReminder ERROR: $e');
+    }
+  }
+
+  // -------------------------------------------------
+  // ABONELİK YENİLEME HATIRLATMASI
+  // -------------------------------------------------
+
+  static Future<void> scheduleSubscriptionReminder({
+    required int ruleId,
+    required String name,
+    required double amount,
+    required DateTime renewalDate,
+  }) async {
+    try {
+      await init();
+
+      final id = subscriptionReminderBaseId + ruleId;
+      await _plugin.cancel(id);
+
+      final when = _pickFutureReminderTime(renewalDate);
+      if (when == null) return;
+
+      final fmt = NumberFormat('#,##0', 'tr_TR');
+
+      await _plugin.zonedSchedule(
+        id,
+        'Abonelik Yenilemesi Yaklaşıyor 🔔',
+        '$name üyeliğin ${fmt.format(amount)} ₺ yakında yenileniyor.',
+        when,
+        _subscriptionDetails(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('[Notif] Abonelik hatırlatması kuruldu -> id=$id, tarih=${when.year}-${when.month}-${when.day}');
+    } catch (e, st) {
+      debugPrint('[Notif] scheduleSubscriptionReminder ERROR: $e\n$st');
+    }
+  }
+
+  static Future<void> cancelSubscriptionReminder(int ruleId) async {
+    try {
+      await init();
+      await _plugin.cancel(subscriptionReminderBaseId + ruleId);
+    } catch (e) {
+      debugPrint('[Notif] cancelSubscriptionReminder ERROR: $e');
+    }
+  }
+
+  // -------------------------------------------------
+  // ORTAK YARDIMCI
+  // -------------------------------------------------
+
+  /// Vadeden 1 gün önce 09:00'ı, geçtiyse vade günü 09:00'ı seçer.
+  /// İkisi de geçmişteyse null döner (bildirim kurulmaz).
+  static tz.TZDateTime? _pickFutureReminderTime(DateTime dueDate) {
+    final now = tz.TZDateTime.now(tz.local);
+    final candidates = [
+      _atNine(dueDate.subtract(const Duration(days: 1))),
+      _atNine(dueDate),
+    ];
+    for (final c in candidates) {
+      if (c.isAfter(now)) return c;
+    }
+    return null;
+  }
+
+  static tz.TZDateTime _atNine(DateTime d) =>
+      tz.TZDateTime(tz.local, d.year, d.month, d.day, 9, 0);
 }

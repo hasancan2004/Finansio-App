@@ -19,6 +19,7 @@ import '../../shared/widgets/app_header.dart';
 import '../../shared/widgets/app_scaffold.dart';
 
 import '../../subscriptions/view/subscriptions_screen.dart';
+import '../../accounts/view/accounts_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -629,6 +630,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: _openRecurring,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ✅ HESAPLAR VE CÜZDANLAR
+                    _card(
+                      theme,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionHeader(
+                            theme: theme,
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: "Hesaplar ve Cüzdanlar",
+                            subtitle:
+                            "Nakit, banka, kredi kartı ve transferler",
+                          ),
+                          const SizedBox(height: 12),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.credit_card_outlined),
+                            title: const Text(
+                              "Hesapları yönet",
+                              style:
+                              TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            subtitle: Text(
+                              "Bakiye, kart limiti ve hesaplar arası transfer",
+                              style:
+                              _subtleSubtitle(theme, enabled: true),
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) => const AccountsScreen()),
+                              );
+                            },
                           ),
                         ],
                       ),

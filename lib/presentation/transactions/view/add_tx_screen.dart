@@ -47,6 +47,10 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
   Category? _selectedCat;
   List<Category> _cats = [];
 
+  // ✅ Çoklu hesap desteği
+  List<Account> _accounts = [];
+  int? _selectedAccountId;
+
   late DateTime _selectedDate;
   late bool _isIncome;
 
@@ -86,9 +90,12 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
       if (!mounted) return;
 
       final prefs = await SharedPreferences.getInstance();
+      final accounts = await ref.read(dbProvider).allAccounts();
+      if (!mounted) return;
 
       setState(() {
         _cats = value;
+        _accounts = accounts;
 
         if (_isEdit) {
           final t = widget.editing!;
@@ -96,6 +103,7 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
           _amountCtrl.text = t.amount.abs().toStringAsFixed(2);
           _noteCtrl.text = t.note ?? '';
           _selectedDate = t.date;
+          _selectedAccountId = t.accountId;
 
           _selectedCat = value.isNotEmpty
               ? value.firstWhere(
@@ -120,6 +128,7 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
 
           _selectedCat = fromLastCat ?? (value.isNotEmpty ? value.first : null);
           _selectedDate = fromLastDate ?? DateTime.now();
+          _selectedAccountId = accounts.isNotEmpty ? accounts.first.id : null;
         }
       });
 
@@ -510,6 +519,8 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
           categoryId: cat.id,
           note: noteTrim.isEmpty ? null : noteTrim,
           date: _selectedDate,
+          accountId: _selectedAccountId,
+          clearAccount: _selectedAccountId == null,
         );
       } else {
         await db.addTransaction(
@@ -518,6 +529,9 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
             categoryId: cat.id,
             note: noteValue,
             date: Value(_selectedDate),
+            accountId: _selectedAccountId != null
+                ? Value(_selectedAccountId)
+                : const Value.absent(),
           ),
         );
       }
@@ -726,6 +740,40 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
                             _sectionTitle(context, "Detay",
                                 icon: Icons.category_outlined),
                             const SizedBox(height: 12),
+                            if (_accounts.isNotEmpty) ...[
+                              DropdownButtonFormField<int?>(
+                                value: _accounts.any(
+                                        (a) => a.id == _selectedAccountId)
+                                    ? _selectedAccountId
+                                    : null,
+                                isExpanded: true,
+                                items: [
+                                  const DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text('Hesapsız (belirtilmemiş)'),
+                                  ),
+                                  ..._accounts.map(
+                                    (a) => DropdownMenuItem<int?>(
+                                      value: a.id,
+                                      child: Text(a.name),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => _selectedAccountId = v),
+                                decoration: InputDecoration(
+                                  labelText: 'Hesap',
+                                  filled: true,
+                                  fillColor:
+                                      cs.surfaceVariant.withOpacity(0.25),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                            ],
                             DropdownButtonFormField<Category>(
                               value: _selectedCat,
                               isExpanded: true,

@@ -22,6 +22,10 @@ class Transactions extends Table {
   RealColumn get amount => real()(); // + gelir, - gider
   TextColumn get note => text().nullable()();
   IntColumn get categoryId => integer().references(Categories, #id)();
+
+  /// İşlemin ait olduğu hesap (cüzdan / banka / kredi kartı).
+  /// Geriye dönük uyumluluk için nullable; null ise "hesapsız" kabul edilir.
+  IntColumn get accountId => integer().nullable().references(Accounts, #id)();
   DateTimeColumn get date => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -102,14 +106,47 @@ class Debts extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// ✅ Çoklu Hesap & Cüzdan Tablosu (Nakit / Banka / Kredi Kartı)
+class Accounts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 50)();
+  TextColumn get type => text().withDefault(const Constant('cash'))(); // cash | bank | credit_card
+  RealColumn get initialBalance => real().withDefault(const Constant(0.0))();
+  TextColumn get colorHex => text().withDefault(const Constant('#3B82F6'))();
+
+  /// İkon anahtarı; UI tarafında Material ikonuna eşlenir.
+  TextColumn get iconName => text().withDefault(const Constant('wallet'))();
+
+  // ---- Kredi kartına özel alanlar (diğer türlerde null) ----
+  RealColumn get creditLimit => real().nullable()();
+  IntColumn get statementDay => integer().nullable()(); // Kesim günü (1-28)
+  IntColumn get dueDay => integer().nullable()(); // Son ödeme günü (1-28)
+
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// ✅ Hesaplar Arası Transfer Tablosu
+/// Gelir-gideri bozmadan yalnızca bakiyeleri taşır.
+class Transfers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('outgoingTransfers')
+  IntColumn get fromAccountId => integer().references(Accounts, #id)();
+  @ReferenceName('incomingTransfers')
+  IntColumn get toAccountId => integer().references(Accounts, #id)();
+  RealColumn get amount => real()(); // Her zaman pozitif
+  TextColumn get note => text().nullable()();
+  DateTimeColumn get date => dateTime().withDefault(currentDateAndTime)();
+}
+
 /// ------------------ Database ------------------
 
-@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules, Assets, SavingGoals, Debts])
+@DriftDatabase(tables: [Categories, Transactions, Budgets, CategoryOverrides, RecurringRules, Assets, SavingGoals, Debts, Accounts, Transfers])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_open());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -123,6 +160,29 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) await m.createTable(assets);
       if (from < 6) await m.createTable(savingGoals);
       if (from < 7) await m.createTable(debts);
+      if (from < 8) {
+        await m.createTable(accounts);
+        await m.createTable(transfers);
+        await m.addColumn(transactions, transactions.accountId);
+
+        // Mevcut kullanıcıların geçmiş işlemlerini kaybetmemek için
+        // varsayılan bir nakit cüzdanı oluşturup hepsini ona bağlarız.
+        final existing = await (select(accounts).get());
+        if (existing.isEmpty) {
+          final accountId = await into(accounts).insert(
+            AccountsCompanion.insert(
+              name: 'Nakit Cüzdan',
+              type: const Value('cash'),
+              colorHex: const Value('#22C55E'),
+              iconName: const Value('wallet'),
+            ),
+          );
+          await customStatement(
+            'UPDATE transactions SET account_id = ? WHERE account_id IS NULL',
+            [accountId],
+          );
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -139,6 +199,19 @@ class AppDatabase extends _$AppDatabase {
         CategoriesCompanion.insert(name: 'Fatura', colorHex: const Value('#AB47BC')),
         CategoriesCompanion.insert(name: 'Maaş', colorHex: const Value('#66BB6A')),
       ]));
+    }
+
+    // Varsayılan nakit cüzdanı yoksa oluştur.
+    final accountCount = await (select(accounts).get()).then((rows) => rows.length);
+    if (accountCount == 0) {
+      await into(accounts).insert(
+        AccountsCompanion.insert(
+          name: 'Nakit Cüzdan',
+          type: const Value('cash'),
+          colorHex: const Value('#22C55E'),
+          iconName: const Value('wallet'),
+        ),
+      );
     }
   }
 
@@ -166,7 +239,9 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('DELETE FROM saving_goals');
       await customStatement('DELETE FROM assets');
       await customStatement('DELETE FROM budgets');
+      await customStatement('DELETE FROM transfers');
       await customStatement('DELETE FROM transactions');
+      await customStatement('DELETE FROM accounts');
       await customStatement('DELETE FROM categories');
     });
   }
@@ -261,12 +336,17 @@ class AppDatabase extends _$AppDatabase {
     int? categoryId,
     String? note,
     DateTime? date,
+    int? accountId,
+    bool clearAccount = false,
   }) {
     final comp = TransactionsCompanion(
       amount: amount != null ? Value(amount) : const Value.absent(),
       categoryId: categoryId != null ? Value(categoryId) : const Value.absent(),
       note: note != null ? Value(note) : const Value.absent(),
       date: date != null ? Value(date) : const Value.absent(),
+      accountId: clearAccount
+          ? const Value(null)
+          : (accountId != null ? Value(accountId) : const Value.absent()),
     );
     return (update(transactions)..where((t) => t.id.equals(id))).write(comp);
   }
@@ -342,6 +422,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? startDate,
     DateTime? endDate,
     int? categoryId,
+    int? accountId,
     double? minAmount,
     double? maxAmount,
     bool sortByAmount = false,
@@ -362,6 +443,9 @@ class AppDatabase extends _$AppDatabase {
     }
     if (categoryId != null) {
       join.where(tx.categoryId.equals(categoryId));
+    }
+    if (accountId != null) {
+      join.where(tx.accountId.equals(accountId));
     }
     if (minAmount != null) {
       join.where(tx.amount.isBiggerOrEqualValue(minAmount));
@@ -396,6 +480,7 @@ class AppDatabase extends _$AppDatabase {
           note: t.note,
           date: t.date,
           category: c,
+          accountId: t.accountId,
         );
       }).toList();
     });
@@ -439,6 +524,7 @@ class AppDatabase extends _$AppDatabase {
         note: t.note,
         date: t.date,
         category: c,
+        accountId: t.accountId,
       );
       return TxWithCategory(tx: txVm, category: c);
     }).toList();
@@ -770,14 +856,14 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<void> addDebtWithTransaction({
+  Future<int> addDebtWithTransaction({
     required String personName,
     required double amount,
     required bool isOwedToMe,
     DateTime? dueDate,
   }) async {
     return transaction(() async {
-      await into(debts).insert(DebtsCompanion.insert(
+      final debtId = await into(debts).insert(DebtsCompanion.insert(
         personName: personName,
         amount: amount,
         isOwedToMe: isOwedToMe,
@@ -802,6 +888,8 @@ class AppDatabase extends _$AppDatabase {
         note: Value(transactionNote),
         date: Value(DateTime.now()),
       ));
+
+      return debtId;
     });
   }
 
@@ -837,6 +925,200 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> deleteDebt(int id) => (delete(debts)..where((d) => d.id.equals(id))).go();
+
+  // ------------------ ✅ HESAPLAR (ACCOUNTS) ------------------
+
+  /// Tüm hesapları ham satırlar + hesaplanmış işlem/transfer toplamları ile
+  /// canlı olarak dinler. Bakiye hesabı domain katmanında yapılır.
+  Stream<List<AccountRow>> watchAccountRows() {
+    final q = customSelect(
+      '''
+      SELECT
+        a.id              AS id,
+        a.name            AS name,
+        a.type            AS type,
+        a.initial_balance AS initial_balance,
+        a.color_hex       AS color_hex,
+        a.icon_name       AS icon_name,
+        a.credit_limit    AS credit_limit,
+        a.statement_day   AS statement_day,
+        a.due_day         AS due_day,
+        a.is_archived     AS is_archived,
+        (SELECT COALESCE(SUM(t.amount), 0)
+           FROM transactions t WHERE t.account_id = a.id) AS tx_sum,
+        (SELECT COALESCE(SUM(
+            CASE WHEN tr.to_account_id = a.id THEN tr.amount ELSE -tr.amount END), 0)
+           FROM transfers tr
+           WHERE tr.from_account_id = a.id OR tr.to_account_id = a.id) AS transfer_sum
+      FROM accounts a
+      ORDER BY a.is_archived ASC, a.created_at ASC, a.id ASC
+      ''',
+      readsFrom: {accounts, transactions, transfers},
+    );
+
+    return q.watch().map((rows) {
+      return rows.map((r) {
+        return AccountRow(
+          id: r.read<int>('id'),
+          name: r.read<String>('name'),
+          type: r.read<String>('type'),
+          initialBalance: r.read<double>('initial_balance'),
+          colorHex: r.read<String>('color_hex'),
+          iconName: r.read<String>('icon_name'),
+          creditLimit: r.read<double?>('credit_limit'),
+          statementDay: r.read<int?>('statement_day'),
+          dueDay: r.read<int?>('due_day'),
+          isArchived: r.read<int>('is_archived') != 0,
+          transactionSum: r.read<double>('tx_sum'),
+          transferSum: r.read<double>('transfer_sum'),
+        );
+      }).toList();
+    });
+  }
+
+  /// Kredi kartının cari ekstre dönemindeki toplam harcaması (pozitif).
+  Future<double> periodSpendingForAccount({
+    required int accountId,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final q = selectOnly(transactions)
+      ..addColumns([transactions.amount.sum()])
+      ..where(transactions.accountId.equals(accountId))
+      ..where(transactions.amount.isSmallerThanValue(0))
+      ..where(transactions.date.isBiggerOrEqualValue(_startOfDay(start)))
+      ..where(transactions.date.isSmallerOrEqualValue(_endOfDay(end)));
+
+    final row = await q.getSingle();
+    final sum = row.read(transactions.amount.sum()) ?? 0.0;
+    return sum.abs();
+  }
+
+  Future<List<Account>> allAccounts({bool includeArchived = false}) {
+    final q = select(accounts);
+    if (!includeArchived) {
+      q.where((a) => a.isArchived.equals(false));
+    }
+    q.orderBy([(a) => OrderingTerm.asc(a.createdAt)]);
+    return q.get();
+  }
+
+  Future<int> addAccount(AccountsCompanion data) => into(accounts).insert(data);
+
+  Future<int> updateAccount({
+    required int id,
+    String? name,
+    String? type,
+    double? initialBalance,
+    String? colorHex,
+    String? iconName,
+    double? creditLimit,
+    int? statementDay,
+    int? dueDay,
+    bool clearCreditDetails = false,
+  }) {
+    final comp = AccountsCompanion(
+      name: name != null ? Value(name) : const Value.absent(),
+      type: type != null ? Value(type) : const Value.absent(),
+      initialBalance:
+          initialBalance != null ? Value(initialBalance) : const Value.absent(),
+      colorHex: colorHex != null ? Value(colorHex) : const Value.absent(),
+      iconName: iconName != null ? Value(iconName) : const Value.absent(),
+      creditLimit: clearCreditDetails
+          ? const Value(null)
+          : (creditLimit != null ? Value(creditLimit) : const Value.absent()),
+      statementDay: clearCreditDetails
+          ? const Value(null)
+          : (statementDay != null ? Value(statementDay) : const Value.absent()),
+      dueDay: clearCreditDetails
+          ? const Value(null)
+          : (dueDay != null ? Value(dueDay) : const Value.absent()),
+    );
+    return (update(accounts)..where((a) => a.id.equals(id))).write(comp);
+  }
+
+  Future<int> setAccountArchived(int id, bool archived) {
+    return (update(accounts)..where((a) => a.id.equals(id)))
+        .write(AccountsCompanion(isArchived: Value(archived)));
+  }
+
+  Future<int> deleteAccount(int id) =>
+      (delete(accounts)..where((a) => a.id.equals(id))).go();
+
+  /// Hesaba bağlı işlem ve transferleri temizler (hesabı silmeden önce).
+  Future<void> clearAccountReferences(int accountId) async {
+    await transaction(() async {
+      await (update(transactions)..where((t) => t.accountId.equals(accountId)))
+          .write(const TransactionsCompanion(accountId: Value(null)));
+      await (delete(transfers)
+        ..where((t) =>
+            t.fromAccountId.equals(accountId) | t.toAccountId.equals(accountId)))
+          .go();
+    });
+  }
+
+  // ------------------ ✅ TRANSFERLER ------------------
+
+  Stream<List<TransferItem>> watchTransfers() {
+    final from = alias(accounts, 'from_acc');
+    final to = alias(accounts, 'to_acc');
+
+    final q = select(transfers).join([
+      innerJoin(from, from.id.equalsExp(transfers.fromAccountId)),
+      innerJoin(to, to.id.equalsExp(transfers.toAccountId)),
+    ])
+      ..orderBy([OrderingTerm.desc(transfers.date), OrderingTerm.desc(transfers.id)]);
+
+    return q.watch().map((rows) {
+      return rows.map((row) {
+        final t = row.readTable(transfers);
+        return TransferItem(
+          id: t.id,
+          fromAccountId: t.fromAccountId,
+          toAccountId: t.toAccountId,
+          fromName: row.readTable(from).name,
+          toName: row.readTable(to).name,
+          amount: t.amount,
+          note: t.note,
+          date: t.date,
+        );
+      }).toList();
+    });
+  }
+
+  Stream<List<TransferItem>> watchTransfersForAccount(int accountId) {
+    final from = alias(accounts, 'from_acc');
+    final to = alias(accounts, 'to_acc');
+
+    final q = select(transfers).join([
+      innerJoin(from, from.id.equalsExp(transfers.fromAccountId)),
+      innerJoin(to, to.id.equalsExp(transfers.toAccountId)),
+    ])
+      ..where(transfers.fromAccountId.equals(accountId) |
+          transfers.toAccountId.equals(accountId))
+      ..orderBy([OrderingTerm.desc(transfers.date), OrderingTerm.desc(transfers.id)]);
+
+    return q.watch().map((rows) {
+      return rows.map((row) {
+        final t = row.readTable(transfers);
+        return TransferItem(
+          id: t.id,
+          fromAccountId: t.fromAccountId,
+          toAccountId: t.toAccountId,
+          fromName: row.readTable(from).name,
+          toName: row.readTable(to).name,
+          amount: t.amount,
+          note: t.note,
+          date: t.date,
+        );
+      }).toList();
+    });
+  }
+
+  Future<int> addTransfer(TransfersCompanion data) => into(transfers).insert(data);
+
+  Future<int> deleteTransfer(int id) =>
+      (delete(transfers)..where((t) => t.id.equals(id))).go();
 }
 
 /// ------------------ DB Açılışı ------------------
@@ -864,12 +1146,16 @@ class Tx {
   final DateTime date;
   final Category category;
 
+  /// İşlemin bağlı olduğu hesap (yoksa null).
+  final int? accountId;
+
   Tx({
     required this.id,
     required this.amount,
     required this.note,
     required this.date,
     required this.category,
+    this.accountId,
   });
 }
 
@@ -986,5 +1272,60 @@ class DebtItem {
     required this.isSettled,
     this.dueDate,
     required this.createdAt,
+  });
+}
+
+/// Hesabın ham veritabanı satırı + hesaplanmış işlem/transfer toplamları.
+/// Bakiye ve kredi kartı hesapları domain katmanında ([AccountEngine]) yapılır.
+class AccountRow {
+  final int id;
+  final String name;
+  final String type;
+  final double initialBalance;
+  final String colorHex;
+  final String iconName;
+  final double? creditLimit;
+  final int? statementDay;
+  final int? dueDay;
+  final bool isArchived;
+  final double transactionSum;
+  final double transferSum;
+
+  AccountRow({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.initialBalance,
+    required this.colorHex,
+    required this.iconName,
+    required this.isArchived,
+    required this.transactionSum,
+    required this.transferSum,
+    this.creditLimit,
+    this.statementDay,
+    this.dueDay,
+  });
+}
+
+/// Hesaplar arası transfer kaydı (hesap adları dahil).
+class TransferItem {
+  final int id;
+  final int fromAccountId;
+  final int toAccountId;
+  final String fromName;
+  final String toName;
+  final double amount;
+  final String? note;
+  final DateTime date;
+
+  TransferItem({
+    required this.id,
+    required this.fromAccountId,
+    required this.toAccountId,
+    required this.fromName,
+    required this.toName,
+    required this.amount,
+    required this.note,
+    required this.date,
   });
 }

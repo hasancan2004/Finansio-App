@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Veritabanı ve Servisler
 import 'package:finansio/data/database/app_database.dart';
 import 'package:finansio/data/services/notification_service.dart';
+import 'package:finansio/data/services/reminder_scheduler.dart';
 import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 
 // Temalar
@@ -44,6 +45,7 @@ void main() {
       await NotificationService.init();
       await NotificationService.ensureDailyScheduled();
       await NotificationService.ensureWeeklyTrendScheduled();
+      await ReminderScheduler.scheduleAll(db);
     } catch (e) {
       debugPrint('[Main] Bildirim Hatası: $e');
     }
