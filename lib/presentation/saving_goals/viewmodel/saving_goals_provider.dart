@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import '../../../data/database/app_database.dart';
-import '../../../main.dart'; // Senin projendeki yola göre
 import '../../transactions/viewmodel/tx_providers.dart';
 
 // 1. Hedefleri anlık dinleyen StreamProvider (Değişiklik anında UI güncellenir)
@@ -40,11 +39,13 @@ class SavingGoalsController {
     required int id,
     String? title,
     double? targetAmount,
+    DateTime? targetDate,
   }) async {
     await _db.updateSavingGoal(
       id: id,
       title: title,
       targetAmount: targetAmount,
+      targetDate: targetDate,
     );
   }
 

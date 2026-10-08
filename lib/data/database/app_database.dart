@@ -79,6 +79,10 @@ class Assets extends Table {
   TextColumn get name => text()();
   RealColumn get quantity => real().withDefault(const Constant(0.0))();
   RealColumn get averagePrice => real().withDefault(const Constant(0.0))();
+
+  /// Güncel fiyat (₺). Döviz için TCMB'den otomatik çekilir, diğer türlerde
+  /// kullanıcı manuel girer. null ise kâr/zarar hesaplanamaz (maliyet gösterilir).
+  RealColumn get currentPrice => real().nullable()();
   TextColumn get colorHex => text().withDefault(const Constant('#FFD700'))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -146,7 +150,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_open());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -182,6 +186,9 @@ class AppDatabase extends _$AppDatabase {
             [accountId],
           );
         }
+      }
+      if (from < 9) {
+        await m.addColumn(assets, assets.currentPrice);
       }
     },
     beforeOpen: (details) async {
@@ -765,6 +772,7 @@ class AppDatabase extends _$AppDatabase {
         name: r.name,
         quantity: r.quantity,
         averagePrice: r.averagePrice,
+        currentPrice: r.currentPrice,
         colorHex: r.colorHex,
         updatedAt: r.updatedAt,
       )).toList();
@@ -777,12 +785,17 @@ class AppDatabase extends _$AppDatabase {
     required int id,
     double? quantity,
     double? averagePrice,
+    double? currentPrice,
+    bool clearCurrentPrice = false,
     String? name,
     DateTime? updatedAt,
   }) {
     final comp = AssetsCompanion(
       quantity: quantity != null ? Value(quantity) : const Value.absent(),
       averagePrice: averagePrice != null ? Value(averagePrice) : const Value.absent(),
+      currentPrice: clearCurrentPrice
+          ? const Value(null)
+          : (currentPrice != null ? Value(currentPrice) : const Value.absent()),
       name: name != null ? Value(name) : const Value.absent(),
       updatedAt: updatedAt != null ? Value(updatedAt) : Value(DateTime.now()),
     );
@@ -1214,10 +1227,23 @@ class AssetItem {
   final String name;
   final double quantity;
   final double averagePrice;
+  final double? currentPrice;
   final String colorHex;
   final DateTime updatedAt;
 
   double get totalCost => quantity * averagePrice;
+
+  /// Güncel değer. Fiyat girilmemişse maliyete eşit kabul edilir.
+  double get currentValue => quantity * (currentPrice ?? averagePrice);
+
+  double get profitLoss => currentValue - totalCost;
+
+  double get profitLossPercent {
+    if (totalCost <= 0) return 0;
+    return profitLoss / totalCost;
+  }
+
+  bool get hasLivePrice => currentPrice != null;
 
   AssetItem({
     required this.id,
@@ -1225,6 +1251,7 @@ class AssetItem {
     required this.name,
     required this.quantity,
     required this.averagePrice,
+    required this.currentPrice,
     required this.colorHex,
     required this.updatedAt,
   });

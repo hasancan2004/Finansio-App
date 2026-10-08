@@ -24,6 +24,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
   late TextEditingController _nameCtrl;
   late TextEditingController _quantityCtrl;
   late TextEditingController _priceCtrl;
+  late TextEditingController _currentPriceCtrl;
 
   String _selectedType = 'GOLD';
   String _selectedColor = '#FFD700'; // Varsayılan Altın Sarısı
@@ -44,6 +45,8 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     _nameCtrl = TextEditingController(text: e?.name ?? '');
     _quantityCtrl = TextEditingController(text: e != null ? e.quantity.toString() : '');
     _priceCtrl = TextEditingController(text: e != null ? e.averagePrice.toString() : '');
+    _currentPriceCtrl = TextEditingController(
+        text: e?.currentPrice != null ? e!.currentPrice.toString() : '');
 
     if (e != null) {
       _selectedType = e.type;
@@ -56,6 +59,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     _nameCtrl.dispose();
     _quantityCtrl.dispose();
     _priceCtrl.dispose();
+    _currentPriceCtrl.dispose();
     super.dispose();
   }
 
@@ -78,6 +82,8 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     final name = _nameCtrl.text.trim();
     final qty = double.tryParse(_quantityCtrl.text.replaceAll(',', '.')) ?? 0.0;
     final price = double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0.0;
+    final currentPriceText = _currentPriceCtrl.text.trim().replaceAll(',', '.');
+    final currentPrice = double.tryParse(currentPriceText);
 
     final db = ref.read(dbProvider);
 
@@ -90,6 +96,8 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
             name: name,
             quantity: Value(qty),
             averagePrice: Value(price),
+            currentPrice:
+                currentPrice != null ? Value(currentPrice) : const Value.absent(),
             colorHex: Value(_selectedColor),
           ),
         );
@@ -100,6 +108,8 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
           name: name,
           quantity: qty,
           averagePrice: price,
+          currentPrice: currentPrice,
+          clearCurrentPrice: currentPrice == null,
         );
       }
       if (mounted) Navigator.pop(context);
@@ -231,6 +241,17 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _currentPriceCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+                          decoration: const InputDecoration(
+                            labelText: "Güncel Fiyat (₺) — İsteğe Bağlı",
+                            prefixIcon: Icon(Icons.trending_up),
+                            hintText: "Kâr/zarar için güncel fiyat gir",
+                          ),
                         ),
                       ],
                     ),

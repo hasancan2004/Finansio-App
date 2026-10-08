@@ -42,11 +42,27 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
     _loadPinState();
   }
 
+  static const _kNavPinned = 'nav_pinned';
+
   Future<void> _loadPinState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pinned = prefs.getBool(_kNavPinned) ?? false;
+    if (!mounted) return;
     setState(() {
-      _isPinned = true;
-      _isExpanded = true;
+      _isPinned = pinned;
+      _isExpanded = pinned;
     });
+  }
+
+  /// Pin'i aç/kapat. Pinliyken sekme hep açık kalır (kalıcı kaydedilir).
+  Future<void> _togglePin() async {
+    final next = !_isPinned;
+    setState(() {
+      _isPinned = next;
+      _isExpanded = next;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNavPinned, next);
   }
 
   // ✅ TEK TIKLA ANA EKRANA GÖTÜREN VE MENÜ DURUMUNA DOKUNMAYAN FONKSİYON
@@ -133,6 +149,11 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
                       ],
                     ),
                   ),
+                  Positioned(
+                    left: 10,
+                    top: -14,
+                    child: _buildPinButton(cs),
+                  ),
                 ],
               ),
             ),
@@ -171,7 +192,7 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
                       foregroundColor: cs.primary,
                       elevation: 6,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      child: const Icon(Icons.explore_outlined, size: 30),
+                      child: const Icon(Icons.grid_view_rounded, size: 30),
                     ),
                   ),
               ],
@@ -190,6 +211,40 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
         icon,
         color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.6),
         size: isSelected ? 34 : 28,
+      ),
+    );
+  }
+
+  Widget _buildPinButton(ColorScheme cs) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _togglePin,
+        child: Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: _isPinned ? cs.primary : cs.surface,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _isPinned ? cs.primary : cs.outlineVariant,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            _isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+            size: 16,
+            color: _isPinned ? cs.onPrimary : cs.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

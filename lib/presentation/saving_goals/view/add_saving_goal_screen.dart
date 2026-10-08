@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../viewmodel/saving_goals_provider.dart';
 
@@ -14,11 +15,26 @@ class _AddSavingGoalScreenState extends ConsumerState<AddSavingGoalScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
 
+  DateTime? _targetDate;
+
   @override
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _targetDate ?? now.add(const Duration(days: 90)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 10)),
+    );
+    if (picked != null) {
+      setState(() => _targetDate = picked);
+    }
   }
 
   void _saveGoal() {
@@ -33,19 +49,22 @@ class _AddSavingGoalScreenState extends ConsumerState<AddSavingGoalScreen> {
       return;
     }
 
-    // Provider üzerinden veritabanına kaydediyoruz
     ref.read(savingGoalsControllerProvider).addGoal(
       title: title,
       targetAmount: amount,
-      colorHex: '#3B82F6', // Şimdilik standart mavi atıyoruz, ileride renk seçici koyarız
+      targetDate: _targetDate,
+      colorHex: '#3B82F6',
       iconName: 'savings',
     );
 
-    Navigator.pop(context); // Kaydedince geri dön
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Yeni Kumbara'),
@@ -74,6 +93,26 @@ class _AddSavingGoalScreenState extends ConsumerState<AddSavingGoalScreen> {
                 prefixIcon: Icon(Icons.account_balance_wallet_outlined),
               ),
             ),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(4),
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Hedef Tarihi (İsteğe Bağlı)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.event_outlined),
+                ),
+                child: Text(
+                  _targetDate != null
+                      ? DateFormat('dd.MM.yyyy').format(_targetDate!)
+                      : 'Tarih Seçilmedi',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: _targetDate != null ? cs.onSurface : cs.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
             const Spacer(),
             ElevatedButton(
               onPressed: _saveGoal,
@@ -85,7 +124,7 @@ class _AddSavingGoalScreenState extends ConsumerState<AddSavingGoalScreen> {
               ),
               child: const Text('Kumbarayı Oluştur', style: TextStyle(fontSize: 16)),
             ),
-            const SizedBox(height: 16), // SafeArea için biraz boşluk
+            const SizedBox(height: 16),
           ],
         ),
       ),

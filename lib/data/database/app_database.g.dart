@@ -2725,6 +2725,17 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0.0),
   );
+  static const VerificationMeta _currentPriceMeta = const VerificationMeta(
+    'currentPrice',
+  );
+  @override
+  late final GeneratedColumn<double> currentPrice = GeneratedColumn<double>(
+    'current_price',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _colorHexMeta = const VerificationMeta(
     'colorHex',
   );
@@ -2756,6 +2767,7 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     name,
     quantity,
     averagePrice,
+    currentPrice,
     colorHex,
     updatedAt,
   ];
@@ -2805,6 +2817,15 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         ),
       );
     }
+    if (data.containsKey('current_price')) {
+      context.handle(
+        _currentPriceMeta,
+        currentPrice.isAcceptableOrUnknown(
+          data['current_price']!,
+          _currentPriceMeta,
+        ),
+      );
+    }
     if (data.containsKey('color_hex')) {
       context.handle(
         _colorHexMeta,
@@ -2846,6 +2867,10 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         DriftSqlType.double,
         data['${effectivePrefix}average_price'],
       )!,
+      currentPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}current_price'],
+      ),
       colorHex: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}color_hex'],
@@ -2869,6 +2894,10 @@ class Asset extends DataClass implements Insertable<Asset> {
   final String name;
   final double quantity;
   final double averagePrice;
+
+  /// Güncel fiyat (₺). Döviz için TCMB'den otomatik çekilir, diğer türlerde
+  /// kullanıcı manuel girer. null ise kâr/zarar hesaplanamaz (maliyet gösterilir).
+  final double? currentPrice;
   final String colorHex;
   final DateTime updatedAt;
   const Asset({
@@ -2877,6 +2906,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     required this.name,
     required this.quantity,
     required this.averagePrice,
+    this.currentPrice,
     required this.colorHex,
     required this.updatedAt,
   });
@@ -2888,6 +2918,9 @@ class Asset extends DataClass implements Insertable<Asset> {
     map['name'] = Variable<String>(name);
     map['quantity'] = Variable<double>(quantity);
     map['average_price'] = Variable<double>(averagePrice);
+    if (!nullToAbsent || currentPrice != null) {
+      map['current_price'] = Variable<double>(currentPrice);
+    }
     map['color_hex'] = Variable<String>(colorHex);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -2900,6 +2933,9 @@ class Asset extends DataClass implements Insertable<Asset> {
       name: Value(name),
       quantity: Value(quantity),
       averagePrice: Value(averagePrice),
+      currentPrice: currentPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentPrice),
       colorHex: Value(colorHex),
       updatedAt: Value(updatedAt),
     );
@@ -2916,6 +2952,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       name: serializer.fromJson<String>(json['name']),
       quantity: serializer.fromJson<double>(json['quantity']),
       averagePrice: serializer.fromJson<double>(json['averagePrice']),
+      currentPrice: serializer.fromJson<double?>(json['currentPrice']),
       colorHex: serializer.fromJson<String>(json['colorHex']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2929,6 +2966,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       'name': serializer.toJson<String>(name),
       'quantity': serializer.toJson<double>(quantity),
       'averagePrice': serializer.toJson<double>(averagePrice),
+      'currentPrice': serializer.toJson<double?>(currentPrice),
       'colorHex': serializer.toJson<String>(colorHex),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2940,6 +2978,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     String? name,
     double? quantity,
     double? averagePrice,
+    Value<double?> currentPrice = const Value.absent(),
     String? colorHex,
     DateTime? updatedAt,
   }) => Asset(
@@ -2948,6 +2987,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     name: name ?? this.name,
     quantity: quantity ?? this.quantity,
     averagePrice: averagePrice ?? this.averagePrice,
+    currentPrice: currentPrice.present ? currentPrice.value : this.currentPrice,
     colorHex: colorHex ?? this.colorHex,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2960,6 +3000,9 @@ class Asset extends DataClass implements Insertable<Asset> {
       averagePrice: data.averagePrice.present
           ? data.averagePrice.value
           : this.averagePrice,
+      currentPrice: data.currentPrice.present
+          ? data.currentPrice.value
+          : this.currentPrice,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2973,6 +3016,7 @@ class Asset extends DataClass implements Insertable<Asset> {
           ..write('name: $name, ')
           ..write('quantity: $quantity, ')
           ..write('averagePrice: $averagePrice, ')
+          ..write('currentPrice: $currentPrice, ')
           ..write('colorHex: $colorHex, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2980,8 +3024,16 @@ class Asset extends DataClass implements Insertable<Asset> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, type, name, quantity, averagePrice, colorHex, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    type,
+    name,
+    quantity,
+    averagePrice,
+    currentPrice,
+    colorHex,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2991,6 +3043,7 @@ class Asset extends DataClass implements Insertable<Asset> {
           other.name == this.name &&
           other.quantity == this.quantity &&
           other.averagePrice == this.averagePrice &&
+          other.currentPrice == this.currentPrice &&
           other.colorHex == this.colorHex &&
           other.updatedAt == this.updatedAt);
 }
@@ -3001,6 +3054,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
   final Value<String> name;
   final Value<double> quantity;
   final Value<double> averagePrice;
+  final Value<double?> currentPrice;
   final Value<String> colorHex;
   final Value<DateTime> updatedAt;
   const AssetsCompanion({
@@ -3009,6 +3063,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     this.name = const Value.absent(),
     this.quantity = const Value.absent(),
     this.averagePrice = const Value.absent(),
+    this.currentPrice = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -3018,6 +3073,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     required String name,
     this.quantity = const Value.absent(),
     this.averagePrice = const Value.absent(),
+    this.currentPrice = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : type = Value(type),
@@ -3028,6 +3084,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Expression<String>? name,
     Expression<double>? quantity,
     Expression<double>? averagePrice,
+    Expression<double>? currentPrice,
     Expression<String>? colorHex,
     Expression<DateTime>? updatedAt,
   }) {
@@ -3037,6 +3094,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       if (name != null) 'name': name,
       if (quantity != null) 'quantity': quantity,
       if (averagePrice != null) 'average_price': averagePrice,
+      if (currentPrice != null) 'current_price': currentPrice,
       if (colorHex != null) 'color_hex': colorHex,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -3048,6 +3106,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Value<String>? name,
     Value<double>? quantity,
     Value<double>? averagePrice,
+    Value<double?>? currentPrice,
     Value<String>? colorHex,
     Value<DateTime>? updatedAt,
   }) {
@@ -3057,6 +3116,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       averagePrice: averagePrice ?? this.averagePrice,
+      currentPrice: currentPrice ?? this.currentPrice,
       colorHex: colorHex ?? this.colorHex,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -3080,6 +3140,9 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     if (averagePrice.present) {
       map['average_price'] = Variable<double>(averagePrice.value);
     }
+    if (currentPrice.present) {
+      map['current_price'] = Variable<double>(currentPrice.value);
+    }
     if (colorHex.present) {
       map['color_hex'] = Variable<String>(colorHex.value);
     }
@@ -3097,6 +3160,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
           ..write('name: $name, ')
           ..write('quantity: $quantity, ')
           ..write('averagePrice: $averagePrice, ')
+          ..write('currentPrice: $currentPrice, ')
           ..write('colorHex: $colorHex, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -7195,6 +7259,7 @@ typedef $$AssetsTableCreateCompanionBuilder =
       required String name,
       Value<double> quantity,
       Value<double> averagePrice,
+      Value<double?> currentPrice,
       Value<String> colorHex,
       Value<DateTime> updatedAt,
     });
@@ -7205,6 +7270,7 @@ typedef $$AssetsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<double> quantity,
       Value<double> averagePrice,
+      Value<double?> currentPrice,
       Value<String> colorHex,
       Value<DateTime> updatedAt,
     });
@@ -7240,6 +7306,11 @@ class $$AssetsTableFilterComposer
 
   ColumnFilters<double> get averagePrice => $composableBuilder(
     column: $table.averagePrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get currentPrice => $composableBuilder(
+    column: $table.currentPrice,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7288,6 +7359,11 @@ class $$AssetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get currentPrice => $composableBuilder(
+    column: $table.currentPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get colorHex => $composableBuilder(
     column: $table.colorHex,
     builder: (column) => ColumnOrderings(column),
@@ -7322,6 +7398,11 @@ class $$AssetsTableAnnotationComposer
 
   GeneratedColumn<double> get averagePrice => $composableBuilder(
     column: $table.averagePrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get currentPrice => $composableBuilder(
+    column: $table.currentPrice,
     builder: (column) => column,
   );
 
@@ -7365,6 +7446,7 @@ class $$AssetsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<double> quantity = const Value.absent(),
                 Value<double> averagePrice = const Value.absent(),
+                Value<double?> currentPrice = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => AssetsCompanion(
@@ -7373,6 +7455,7 @@ class $$AssetsTableTableManager
                 name: name,
                 quantity: quantity,
                 averagePrice: averagePrice,
+                currentPrice: currentPrice,
                 colorHex: colorHex,
                 updatedAt: updatedAt,
               ),
@@ -7383,6 +7466,7 @@ class $$AssetsTableTableManager
                 required String name,
                 Value<double> quantity = const Value.absent(),
                 Value<double> averagePrice = const Value.absent(),
+                Value<double?> currentPrice = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => AssetsCompanion.insert(
@@ -7391,6 +7475,7 @@ class $$AssetsTableTableManager
                 name: name,
                 quantity: quantity,
                 averagePrice: averagePrice,
+                currentPrice: currentPrice,
                 colorHex: colorHex,
                 updatedAt: updatedAt,
               ),

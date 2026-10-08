@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../data/database/app_database.dart';
+import '../../../domain/engine/saving_goal_engine.dart';
 import '../viewmodel/saving_goals_provider.dart';
 import 'add_saving_goal_screen.dart';
 
@@ -10,6 +12,34 @@ class SavingGoalsScreen extends ConsumerWidget {
   String _formatTry(double amount) {
     final f = NumberFormat("#,##0", "tr_TR");
     return '${f.format(amount)} ₺';
+  }
+
+  String _goalTip(SavingGoalItem goal) {
+    final e = SavingGoalEngine.estimate(
+      currentAmount: goal.currentAmount,
+      targetAmount: goal.targetAmount,
+      createdAt: goal.createdAt,
+      targetDate: goal.targetDate,
+    );
+
+    if (e.isCompleted) return '🎉 Hedefine ulaştın!';
+    if (e.monthlyRate <= 0) return 'İlk birikimi ekle, ne zaman ulaşacağını tahmin edelim.';
+
+    final months = e.monthsToReach ?? 0;
+    final String main = months < 1
+        ? 'Bu hızla 1 aydan kısa sürede hedefe ulaşıyorsun'
+        : 'Bu hızla ~${months.ceil()} ay sonra hedefe ulaşıyorsun';
+
+    final target = e.targetDate;
+    final finish = e.estimatedFinish;
+    if (target == null || finish == null) return main;
+
+    final diff = finish.difference(target).inDays ~/ 30.44;
+    if (diff <= 0) {
+      final early = ((target.difference(finish).inDays) / 30.44).ceil();
+      return '$main (hedefinden ~$early ay erken)';
+    }
+    return '$main (hedefinden ~${diff.ceil()} ay geç)';
   }
 
   Color _hexToColor(String hex) {
@@ -79,74 +109,105 @@ class SavingGoalsScreen extends ConsumerWidget {
   }
 
   // ---- HEDEF DÜZENLEME MODALI ----
-  void _showEditGoalSheet(BuildContext context, WidgetRef ref, int goalId, String currentTitle, double currentTarget) {
-    final titleController = TextEditingController(text: currentTitle);
-    final amountController = TextEditingController(text: currentTarget.toString());
+  void _showEditGoalSheet(BuildContext context, WidgetRef ref, SavingGoalItem goal) {
+    final titleController = TextEditingController(text: goal.title);
+    final amountController = TextEditingController(text: goal.targetAmount.toString());
+    DateTime? editDate = goal.targetDate;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 24, right: 24, top: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Hedefi Düzenle',
-                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 24, right: 24, top: 24,
               ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Hedef Adı',
-                  prefixIcon: const Icon(Icons.flag_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Hedeflenen Tutar (₺)',
-                  prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                onPressed: () {
-                  final title = titleController.text.trim();
-                  final amountText = amountController.text.replaceAll(',', '.');
-                  final amount = double.tryParse(amountText) ?? 0.0;
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Hedefi Düzenle',
+                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: 'Hedef Adı',
+                      prefixIcon: const Icon(Icons.flag_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Hedeflenen Tutar (₺)',
+                      prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () async {
+                      final now = DateTime.now();
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: editDate ?? now.add(const Duration(days: 90)),
+                        firstDate: now,
+                        lastDate: now.add(const Duration(days: 365 * 10)),
+                      );
+                      if (picked != null) {
+                        setModalState(() => editDate = picked);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Hedef Tarihi',
+                        prefixIcon: const Icon(Icons.event_outlined),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: Text(
+                        editDate != null ? DateFormat('dd.MM.yyyy').format(editDate!) : 'Tarih Seçilmedi',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: () {
+                      final title = titleController.text.trim();
+                      final amountText = amountController.text.replaceAll(',', '.');
+                      final amount = double.tryParse(amountText) ?? 0.0;
 
-                  if (title.isNotEmpty && amount > 0) {
-                    // ✅ HATA DÜZELTİLDİ: Artık doğru updateGoal fonksiyonu çağrılıyor
-                    ref.read(savingGoalsControllerProvider).updateGoal(
-                      id: goalId,
-                      title: title,
-                      targetAmount: amount,
-                    );
-                    Navigator.pop(ctx);
-                  }
-                },
-                child: const Text('Güncelle', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      if (title.isNotEmpty && amount > 0) {
+                        ref.read(savingGoalsControllerProvider).updateGoal(
+                          id: goal.id,
+                          title: title,
+                          targetAmount: amount,
+                          targetDate: editDate,
+                        );
+                        Navigator.pop(ctx);
+                      }
+                    },
+                    child: const Text('Güncelle', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -256,8 +317,7 @@ class SavingGoalsScreen extends ConsumerWidget {
                             icon: Icon(Icons.more_vert, color: cs.onSurfaceVariant),
                             onSelected: (value) {
                               if (value == 'edit') {
-                                // ✅ HATA DÜZELTİLDİ: Artık düzenleme popup'ı açılıyor
-                                _showEditGoalSheet(context, ref, goal.id, goal.title, goal.targetAmount);
+                                _showEditGoalSheet(context, ref, goal);
                               } else if (value == 'delete') {
                                 _confirmDelete(context, ref, goal.id, goal.title);
                               }
@@ -280,6 +340,48 @@ class SavingGoalsScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 20),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: goalColor.withAlpha(20),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: goalColor.withAlpha(40)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lightbulb_outline, size: 18, color: goalColor),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _goalTip(goal),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (goal.targetDate != null) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Icon(Icons.event_outlined, size: 14, color: cs.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Hedef Tarihi: ${DateFormat('dd.MM.yyyy').format(goal.targetDate!)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
