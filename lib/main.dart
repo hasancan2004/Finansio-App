@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:finansio/data/database/app_database.dart';
 import 'package:finansio/data/services/notification_service.dart';
 import 'package:finansio/data/services/reminder_scheduler.dart';
+import 'package:finansio/data/services/transaction_capture_service.dart';
 import 'package:finansio/presentation/transactions/viewmodel/tx_providers.dart';
 
 // Temalar
@@ -50,6 +51,9 @@ void main() {
       debugPrint('[Main] Bildirim Hatası: $e');
     }
   });
+
+  // Otomatik işlem yakalama (bildirim dinleyici)
+  TransactionCaptureService.start(db);
 }
 
 class FinansioApp extends ConsumerWidget {

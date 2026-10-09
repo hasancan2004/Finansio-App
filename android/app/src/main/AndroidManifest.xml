@@ -38,6 +38,17 @@
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
 
+        <!-- Otomatik işlem yakalama (bildirim dinleyici) -->
+        <service
+            android:name=".SmsNotificationListenerService"
+            android:exported="false"
+            android:label="Finansio İşlem Yakalayıcı"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">

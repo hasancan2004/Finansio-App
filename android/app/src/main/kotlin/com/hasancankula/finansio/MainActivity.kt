@@ -54,5 +54,41 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        // SMS / bildirim yakalayıcı köprüsü
+        SmsNotificationListenerService.messenger = flutterEngine.dartExecutor.binaryMessenger
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SMS_LISTENER_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isEnabled" -> result.success(isNotificationListenerEnabled())
+                    "openSettings" -> {
+                        openNotificationListenerSettings()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun isNotificationListenerEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            "enabled_notification_listeners"
+        )
+        return enabled?.contains(packageName) == true
+    }
+
+    private fun openNotificationListenerSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (e: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_SETTINGS))
+            } catch (_: Exception) {
+                // yut
+            }
+        }
     }
 }
+

@@ -20,6 +20,7 @@ import '../../shared/widgets/app_scaffold.dart';
 
 import '../../subscriptions/view/subscriptions_screen.dart';
 import '../../accounts/view/accounts_screen.dart';
+import 'notification_capture_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -669,6 +670,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                     builder: (_) => const AccountsScreen()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ✅ OTOMATİK İŞLEM YAKALAMA
+                    _card(
+                      theme,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionHeader(
+                            theme: theme,
+                            icon: Icons.notifications_active_outlined,
+                            title: "Otomatik İşlem Yakalama",
+                            subtitle: "Banka bildirimlerinden işlem oluştur",
+                          ),
+                          const SizedBox(height: 12),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.flash_on_outlined),
+                            title: const Text(
+                              "Bildirimden işlem yakala",
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            subtitle: Text(
+                              "Harcama ve para bildirimlerini otomatik algıla",
+                              style: _subtleSubtitle(theme, enabled: true),
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const NotificationCaptureScreen()),
                               );
                             },
                           ),
