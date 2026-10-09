@@ -106,25 +106,19 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
     return Scaffold(
       body: Stack(
         children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: _pages,
-          ),
-
-          if (_isExpanded && !_isPinned)
-            Positioned(
-              // AppBar + status bar alanını hariç tutuyoruz ki
-              // sağ üstteki çarpı butonuna tek tıkla basılabilsin
-              top: MediaQuery.of(context).padding.top + kToolbarHeight,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () => setState(() => _isExpanded = false),
-                child: Container(),
-              ),
+          // Sayfalar, boş alana tıklamayı yakalayan bir GestureDetector ile
+          // sarıldı. Butonlar kendi tıklamalarını kazandığı için sadece
+          // gerçekten boş bir alana basılınca menü kapanır; pinliyken hiç kapanmaz.
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: (_isExpanded && !_isPinned)
+                ? () => setState(() => _isExpanded = false)
+                : null,
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _pages,
             ),
+          ),
 
           if (_isPinned || _isExpanded)
             Positioned(
