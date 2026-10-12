@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:finansio/presentation/settings/viewmodel/theme_provider.dart';
 import 'package:finansio/presentation/settings/view/privacy_policy_screen.dart';
@@ -47,10 +48,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // busy
   bool _backupBusy = false;
 
+  // App sürüm bilgisi
+  String _version = '';
+
   @override
   void initState() {
     super.initState();
     _loadNotif();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _version = '${info.version} (Build ${info.buildNumber})';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _version = '1.0.0');
+    }
   }
 
   // ✅ ÇÖZÜM: Try-Catch ekleyerek bildirim servisi çökse bile
@@ -1017,7 +1035,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             subtitle: "Finansio • Kişisel finans takibi",
                           ),
                           const SizedBox(height: 12),
-                          Text("Versiyon: 1.0.0 (Build 1)", style: theme.textTheme.bodyMedium),
+                          Text(
+                            _version.isEmpty ? "Versiyon yükleniyor…" : "Versiyon: $_version",
+                            style: theme.textTheme.bodyMedium,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             "Öneri ve görüşlerin uygulamayı daha iyi hale getirmemiz için çok önemli.",
@@ -1039,24 +1060,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 },
                                 icon: const Icon(Icons.privacy_tip_outlined, size: 18),
                                 label: const Text("Gizlilik Politikası"),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Bize ulaşın sayfası yakında eklenecek.")),
-                                  );
-                                },
-                                icon: const Icon(Icons.mail_outline, size: 18),
-                                label: const Text("Bize Ulaşın"),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Uygulama yayına alındığında aktif olacak.")),
-                                  );
-                                },
-                                icon: const Icon(Icons.star_border_rounded, size: 18),
-                                label: const Text("Değerlendir"),
                               ),
                             ],
                           ),
