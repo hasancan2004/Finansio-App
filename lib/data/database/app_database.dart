@@ -167,7 +167,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 8) {
         await m.createTable(accounts);
         await m.createTable(transfers);
-        await m.addColumn(transactions, transactions.accountId);
+        if (!await _columnExists('transactions', 'account_id')) {
+          await m.addColumn(transactions, transactions.accountId);
+        }
 
         // Mevcut kullanıcıların geçmiş işlemlerini kaybetmemek için
         // varsayılan bir nakit cüzdanı oluşturup hepsini ona bağlarız.
@@ -188,13 +190,21 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 9) {
-        await m.addColumn(assets, assets.currentPrice);
+        // Tablo from<5 adımında güncel şemayla oluşmuş olabilir; çift eklemeyi önle.
+        if (!await _columnExists('assets', 'current_price')) {
+          await m.addColumn(assets, assets.currentPrice);
+        }
       }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  Future<bool> _columnExists(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return rows.any((r) => r.data['name'] == column);
+  }
 
   /// İlk açılışta örnek kategoriler (seed)
   Future<void> seed() async {
