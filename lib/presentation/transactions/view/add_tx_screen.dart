@@ -16,6 +16,7 @@ import '../../../domain/engine/category_predictor.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/app_header.dart';
 import '../../shared/theme/app_surfaces.dart';
+import '../../settings/view/categories_screen.dart';
 
 import 'package:finansio/presentation/budgets/viewmodel/budget_providers.dart';
 
@@ -142,6 +143,31 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(m)));
+  }
+
+  // Kategori yönetim ekranını açıp dönüşte listeyi tazeler.
+  Future<void> _openCategories() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+    );
+    await _reloadCategories();
+  }
+
+  Future<void> _reloadCategories() async {
+    final db = ref.read(dbProvider);
+    final cats = await db.allCategories();
+    if (!mounted) return;
+
+    setState(() {
+      _cats = cats;
+      final selected = _selectedCat;
+      if (selected == null || !cats.any((c) => c.id == selected.id)) {
+        _selectedCat = cats.isNotEmpty ? cats.first : null;
+      }
+    });
+
+    _handleNoteChanged();
   }
 
   // ---- normalize helper ----
@@ -774,45 +800,71 @@ class _AddTxScreenState extends ConsumerState<AddTxScreen> {
                               ),
                               const SizedBox(height: 14),
                             ],
-                            DropdownButtonFormField<Category>(
-                              value: _selectedCat,
-                              isExpanded: true,
-                              items: _cats
-                                  .map((c) => DropdownMenuItem(
-                                value: c,
-                                child: Text(c.name),
-                              ))
-                                  .toList(),
-                              onChanged: (v) async {
-                                if (v == null) return;
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<Category>(
+                                    value: _selectedCat,
+                                    isExpanded: true,
+                                    items: _cats
+                                        .map((c) => DropdownMenuItem(
+                                      value: c,
+                                      child: Text(c.name),
+                                    ))
+                                        .toList(),
+                                    onChanged: (v) async {
+                                      if (v == null) return;
 
-                                setState(() {
-                                  _selectedCat = v;
-                                  _userOverrodeCategory = true;
+                                      setState(() {
+                                        _selectedCat = v;
+                                        _userOverrodeCategory = true;
 
-                                  _aiApplied = false;
-                                  _beforeAiCategory = null;
-                                });
+                                        _aiApplied = false;
+                                        _beforeAiCategory = null;
+                                      });
 
-                                // Arka planda basit kelime-kategori eşleştirmesini lokal DB'ye
-                                // kaydetmeye devam eder (işlevsellik bozulmaz) ama
-                                // ekrana "Öğrendim" diye hava atan mesajı basmaz :)
-                                await _learnFromUserChoice(v);
+                                      // Arka planda basit kelime-kategori eşleştirmesini lokal DB'ye
+                                      // kaydetmeye devam eder (işlevsellik bozulmaz) ama
+                                      // ekrana "Öğrendim" diye hava atan mesajı basmaz :)
+                                      await _learnFromUserChoice(v);
 
-                                if (!mounted) return;
+                                      if (!mounted) return;
 
-                                _scheduleAnomalyCheck();
-                              },
-                              decoration: InputDecoration(
-                                labelText: 'Kategori',
-                                filled: true,
-                                fillColor:
-                                cs.surfaceVariant.withOpacity(0.25),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
+                                      _scheduleAnomalyCheck();
+                                    },
+                                    decoration: InputDecoration(
+                                      labelText: 'Kategori',
+                                      filled: true,
+                                      fillColor:
+                                      cs.surfaceVariant.withOpacity(0.25),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  height: 56,
+                                  child: IconButton(
+                                    tooltip: 'Yeni Kategori Ekle',
+                                    onPressed: _openCategories,
+                                    style: IconButton.styleFrom(
+                                      backgroundColor:
+                                          cs.surfaceVariant.withOpacity(0.25),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    icon: Icon(
+                                      Icons.add_circle_outline,
+                                      color: cs.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
 
                             if (_usedPersonalOverride && !_userOverrodeCategory)
