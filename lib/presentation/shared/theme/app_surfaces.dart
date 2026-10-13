@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 class AppSurfaces {
+  static const Color _softBase = Color(0xFFFFF8EE);
 
   // ==========================================
   // ✅ ESKİ METOTLAR (Diğer sayfaların hata vermemesi için geri getirildi)
@@ -11,7 +12,7 @@ class AppSurfaces {
       return Color.lerp(const Color(0xFF262A32), cs.primaryContainer, 0.08)!;
     }
     // Açık temada çok daha belirgin, şık bir mavi-buz rengi
-    return Color.lerp(Colors.white, cs.primary, 0.08)!;
+    return Color.lerp(_softBase, cs.primary, 0.04)!;
   }
 
   static BorderSide cardBorder(ColorScheme cs) {
@@ -52,8 +53,8 @@ class AppSurfaces {
           const Color(0xFF1E2228),
         ]
             : [
-          Color.lerp(Colors.white, cs.primary, 0.12)!,
-          Color.lerp(Colors.white, cs.primary, 0.22)!,
+          Color.lerp(_softBase, cs.primary, 0.04)!,
+          Color.lerp(_softBase, cs.primary, 0.09)!,
         ],
       ),
       border: Border.all(
@@ -87,9 +88,9 @@ class AppSurfaces {
           const Color(0xFF22262C),
         ]
             : [
-          Color.lerp(Colors.white, cs.primaryContainer, 0.25)!,
-          Color.lerp(Colors.white, cs.primary, 0.15)!,
-          Color.lerp(Colors.white, cs.primaryContainer, 0.45)!,
+          Color.lerp(_softBase, cs.primaryContainer, 0.10)!,
+          Color.lerp(_softBase, cs.primary, 0.05)!,
+          Color.lerp(_softBase, cs.primaryContainer, 0.18)!,
         ],
         stops: isDark ? const [0, 0.42, 1] : const [0, 0.40, 1],
       ),

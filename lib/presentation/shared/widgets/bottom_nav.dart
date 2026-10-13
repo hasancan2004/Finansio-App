@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../theme/app_surfaces.dart';
 import '../../transactions/view/home_screen.dart';
 import '../../transactions/view/add_tx_screen.dart';
 import '../../reports/view/reports_screen.dart';
@@ -130,8 +129,21 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
                 children: [
                   Container(
                     height: 72,
-                    decoration: AppSurfaces.cardDecoration(cs).copyWith(
+                    decoration: BoxDecoration(
+                      color: cs.surface,
                       borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: cs.outlineVariant.withOpacity(0.55),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(
+                            cs.brightness == Brightness.dark ? 0.45 : 0.08,
+                          ),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,

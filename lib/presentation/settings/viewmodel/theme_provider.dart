@@ -52,15 +52,15 @@ int _encodeAccent(AccentColorKey key) => key.index;
 Color accentColorFromKey(AccentColorKey key) {
   switch (key) {
     case AccentColorKey.blue:
-      return const Color(0xFF1565C0);
+      return const Color(0xFF2563EB);
     case AccentColorKey.purple:
-      return const Color(0xFF7E57C2);
+      return const Color(0xFF7C3AED);
     case AccentColorKey.green:
-      return const Color(0xFF2E7D32);
+      return const Color(0xFF16A34A);
     case AccentColorKey.teal:
-      return const Color(0xFF00897B);
+      return const Color(0xFF0D9488);
     case AccentColorKey.orange:
-      return const Color(0xFFF57C00);
+      return const Color(0xFFF97316);
   }
 }
 
@@ -128,28 +128,33 @@ ThemeData buildLightTheme(Color accent) {
     brightness: Brightness.light,
   );
 
-  // ✅ Mavi tonlar yerine ferah, modern açık gri ve saf beyaz
-  const canvas = Color(0xFFE0ECF8);
-  const sheet = Colors.white;
-  const card = Colors.white;
-  const cardRaised = Colors.white;
-  const well = Color(0xFFF1F5F9);
+  // ✅ Nötr + ferah: arka plan gri, kartlar beyaz, vurgu accent'te
+  // Canlı: accent'ten türetilen belirgin renk tonlu zemin, açık kartlar
+  final canvas = _mix(const Color(0xFFFBEFDD), accent, 0.05);
+  final sheet = _mix(const Color(0xFFFFF8EE), accent, 0.03);
+  final card = _mix(const Color(0xFFFFFAF2), accent, 0.025);
+  final cardRaised = card;
+  final well = _mix(const Color(0xFFFCEBD3), accent, 0.06);
   const onSurface = Color(0xFF0F172A);
 
   final scheme = seeded.copyWith(
+    primary: accent,
+    onPrimary: Colors.white,
+    primaryContainer: _mix(Colors.white, accent, 0.18),
+    onPrimaryContainer: _mix(Colors.black, accent, 0.75),
     surface: sheet,
-    surfaceDim: well,
+    surfaceDim: canvas,
     surfaceBright: cardRaised,
     surfaceContainerLowest: cardRaised,
     surfaceContainerLow: card,
     surfaceContainer: sheet,
     surfaceContainerHigh: well,
-    surfaceContainerHighest: _mix(well, accent, 0.05),
+    surfaceContainerHighest: _mix(const Color(0xFFE7EEFF), accent, 0.15),
     onSurface: onSurface,
-    onSurfaceVariant: const Color(0xFF334155),
-    outline: _mix(const Color(0xFFB0BEC5), accent, 0.10),
-    outlineVariant: _mix(const Color(0xFFCFD8DC), accent, 0.10),
-    surfaceTint: Colors.transparent, // M3 mavi boyamasını engeller
+    onSurfaceVariant: const Color(0xFF4A5563),
+    outline: const Color(0xFFB9C0CB),
+    outlineVariant: const Color(0xFFD7DCE4),
+    surfaceTint: Colors.transparent,
   );
 
   final radius = BorderRadius.circular(16);
@@ -220,7 +225,7 @@ ThemeData buildLightTheme(Color accent) {
     ),
 
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: cardRaised,
+      backgroundColor: _mix(const Color(0xFFFFF8EE), accent, 0.04),
       indicatorColor: scheme.primary.withOpacity(0.18),
       elevation: 0,
       shadowColor: Colors.transparent,
