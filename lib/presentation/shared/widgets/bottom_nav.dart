@@ -91,6 +91,8 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // Sistem navigasyon çubuğu (3 tuş) yüksekliği; gesture navigasyonda küçük/0 olur
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     bool showAddButton = (_currentIndex == 0 || _currentIndex == 2);
 
@@ -123,7 +125,7 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
             Positioned(
               left: 16,
               right: 16,
-              bottom: 32,
+              bottom: 32 + bottomInset,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -166,7 +168,7 @@ class BottomNavShellState extends ConsumerState<BottomNavShell> {
 
           Positioned(
             right: 16,
-            bottom: (_isPinned || _isExpanded) ? 112 : 32,
+            bottom: ((_isPinned || _isExpanded) ? 112 : 32) + bottomInset,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
